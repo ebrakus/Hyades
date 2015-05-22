@@ -5,47 +5,70 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"fmt"
 	"strconv"
-//	"strings"
+	"fmt"
+	"os"
 )
 
-const (
-	SERVER1 = "http://127.0.0.1:9000"
-	SERVER2 = "http://127.0.0.1:9001"
-)
+type LoadBalancer struct {
+	id int				/*Identification of load balancer*/
+	port string
+	numLB int			/*Number of other Load Balancers active*/
+	numServers int		/*Number of servers in each of the server sets*/
+	servers1 []string  	/*Server set 2's IP's*/
+	servers2 []string	/*Server set 2's IP's*/
+	load1 []int 		/*Load1 of server set of other load balancers*/
+	load2 []int			/*Load2 of server set of other load balancers*/
+	curLoad1 int 		/*Self's Load on server set 1*/
+	curLoad2 int 		/*Self's Load on server set 2*/
+}
+
 
 func main() {
-	// get /server1/hello => to server1
-	// get /server2/hello => to server2
-	var target1, target2 *url.URL
+
 	var err error
-	i:=0
+	var lb LoadBalancer
+	
+	lb.id,_ = strconv.Atoi(os.Args[1])
+	lb.numServers,_ = strconv.Atoi(os.Args[2])
 
-	if target1, err = url.Parse(SERVER1); err != nil {
-		log.Fatal("parse url: ", err)
+	fmt.Println("Id and numservers are",lb.id,lb.numServers)
+
+	lb.servers1 = make([]string,0)
+	lb.servers1 = make([]string,0)
+
+	lb.load1 = make([]int,0)
+	lb.load1 = make([]int,0)
+
+	lb.port = strconv.Itoa(8000 + lb.id)
+
+	for i:=0;i<lb.numServers;i++{
+		lb.servers1 = append(lb.servers1 ,strconv.Itoa(9000 + 10*lb.id + i))
+		lb.load1 = append(lb.load1,0)
+		lb.servers2 = append(lb.servers2 ,strconv.Itoa(9100 + 10*lb.id + i))
+		lb.load2 = append(lb.load2,0)
 	}
 
-	if target2, err = url.Parse(SERVER2); err != nil {
-		log.Fatal("parse url: ", err)
-	}
+	lb.numLB = 0
+	lb.curLoad1 = 0
+	lb.curLoad2 = 0 
 
+	i1:=0
+	//i2:=0
 	reverseProxy := new(httputil.ReverseProxy)
 
 	reverseProxy.Director = func(req *http.Request) {
 		req.URL.Scheme = "http"
-
-		path:=strconv.Itoa(i)
-		if  i%2==0 {
-			req.URL.Host = target1.Host + "/" + path
-		}else{
-			req.URL.Host = target2.Host +  "/" + path
-		}
-		fmt.Println("req url is ",req.URL.Host)
-		i++
+		port:=9000 + 10*lb.id + i1%lb.numServers
+		portS:= strconv.Itoa(port)
+		fmt.Println("Ports was:"+portS)
+		var target *url.URL
+		target, _  = url.Parse("http://127.0.0.1:"+portS)
+		req.URL.Host = target.Host
+		i1++;
 	}
 
-	err = http.ListenAndServe(":8000", reverseProxy)
+	err = http.ListenAndServe(":"+lb.port, reverseProxy)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
