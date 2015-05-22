@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"fmt"
+	"strconv"
 //	"strings"
 )
 
@@ -25,6 +27,7 @@ func main() {
 	}
 
 	if target2, err = url.Parse(SERVER2); err != nil {
+		log.Fatal("parse url: ", err)
 	}
 
 	reverseProxy := new(httputil.ReverseProxy)
@@ -32,11 +35,13 @@ func main() {
 	reverseProxy.Director = func(req *http.Request) {
 		req.URL.Scheme = "http"
 
+		path:=strconv.Itoa(i)
 		if  i%2==0 {
-			req.URL.Host = target1.Host
+			req.URL.Host = target1.Host + "/" + path
 		}else{
-			req.URL.Host = target2.Host
+			req.URL.Host = target2.Host +  "/" + path
 		}
+		fmt.Println("req url is ",req.URL.Host)
 		i++
 	}
 
