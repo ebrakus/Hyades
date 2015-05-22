@@ -12,6 +12,7 @@ import (
     "github.com/gonum/plot/plotter"
     "github.com/gonum/plot/plotutil"
     "github.com/gonum/plot/vg"
+    "net"
 )
 
 var(
@@ -27,7 +28,19 @@ var(
 
 func temp(server string, count *int, n int) {
         port_number := 8000 + n
-	resp, err := http.Get("http://localhost:" + strconv.Itoa(port_number) + "/" + server + "/")
+
+        transport := &http.Transport {
+            Proxy: http.ProxyFromEnvironment,
+            Dial: (&net.Dialer{Timeout: 0,KeepAlive: 0}).Dial,
+            TLSHandshakeTimeout: 10 * time.Second,
+        }
+
+        httpClient := &http.Client{Transport: transport}
+        req, _ := http.NewRequest("GET", "http://127.0.0.1:" + strconv.Itoa(port_number) + "/" + server + "/", nil)
+        req.Header.Set("Connection", "close")
+        req.Close = true
+        resp, err := httpClient.Do(req)
+
 		if err!=nil{
 			fmt.Println("not working")	
 		}else{
@@ -66,6 +79,7 @@ func main() {
                         req_sent_server1++
                         go temp("server2", &reply_recv_server2[i], i%lb_id)
                         req_sent_server2++
+                        time.Sleep(3*time.Millisecond)
                 }
             case "2": 
                 //to server1
@@ -104,8 +118,8 @@ func main() {
         pts1 := make(plotter.XYs, numPeriods)
         pts2 := make(plotter.XYs, numPeriods)
         for i := range pts1 {
-            pts1[i].X = float64(100*i)
-            pts2[i].X = float64(100*i)
+            pts1[i].X = float64(1*i)
+            pts2[i].X = float64(1*i)
 
             pts1[i].Y =  float64(req_sent_per_time_server1[i])
             pts2[i].Y =  float64(reply_recv_per_time_server1[i])
@@ -125,13 +139,16 @@ func main() {
             panic(err)
         }
 
+        fmt.Println("Req to Server1", req_sent_per_time_server1)
+        fmt.Println("Reply from Server1", reply_recv_per_time_server1)
+
 }
 
 func counter_poller(number int){
      for{
             reply_server1 := 0
             reply_server2 := 0
-            time.Sleep(100*time.Millisecond)
+            time.Sleep(1*time.Millisecond)
             for i:=0; i<number; i++{
                 if reply_recv_server1[i] != 0{
                     reply_server1++
