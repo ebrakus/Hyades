@@ -1,5 +1,5 @@
 var http=require('http');
-var ports = [9000];
+var ports = [9000,9100];
 
 for(var i = 1; i < 12; i++) {
  ports.push(9000+i)

@@ -145,10 +145,10 @@ func counter_poller(number int){
             reply_recv_per_time_server1 = append(reply_recv_per_time_server1, reply_server1)
             reply_recv_per_time_server2 = append(reply_recv_per_time_server2, reply_server2)
 
-            fmt.Println("Req to Server1", req_sent_per_time_server1)
+            /*fmt.Println("Req to Server1", req_sent_per_time_server1)
             fmt.Println("Req to Server2", req_sent_per_time_server2)
             fmt.Println("Reply from Server1", reply_recv_per_time_server1)
-            fmt.Println("Reply from Server2", reply_recv_per_time_server2)
+            fmt.Println("Reply from Server2", reply_recv_per_time_server2)*/
 
         }
         
