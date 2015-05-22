@@ -9,7 +9,7 @@ import (
 )
 
 func temp() {
-	resp, err := http.Get("http://localhost:8000/")
+	resp, err := http.Get("http://localhost:8000/server2/")
 		if err!=nil{
 			fmt.Println("not working")	
 		}else{
@@ -24,7 +24,7 @@ func main() {
 	for i:=0;i<100;i++{
 		go temp()
 	}
-	time.Sleep(10*time.Second)
+	time.Sleep(100*time.Second)
 	fmt.Println("Complete");
 	for{
 

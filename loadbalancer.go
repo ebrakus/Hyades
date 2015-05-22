@@ -8,11 +8,12 @@ import (
 	"strconv"
 	"fmt"
 	"os"
+	"strings"
 )
 
 type LoadBalancer struct {
 	id int				/*Identification of load balancer*/
-	port string
+	port string			/*Port it is listening on*/
 	numLB int			/*Number of other Load Balancers active*/
 	numServers int		/*Number of servers in each of the server sets*/
 	servers1 []string  	/*Server set 2's IP's*/
@@ -35,10 +36,10 @@ func main() {
 	fmt.Println("Id and numservers are",lb.id,lb.numServers)
 
 	lb.servers1 = make([]string,0)
-	lb.servers1 = make([]string,0)
+	lb.servers2 = make([]string,0)
 
 	lb.load1 = make([]int,0)
-	lb.load1 = make([]int,0)
+	lb.load2 = make([]int,0)
 
 	lb.port = strconv.Itoa(8000 + lb.id)
 
@@ -54,18 +55,32 @@ func main() {
 	lb.curLoad2 = 0 
 
 	i1:=0
-	//i2:=0
+	i2:=0
 	reverseProxy := new(httputil.ReverseProxy)
 
 	reverseProxy.Director = func(req *http.Request) {
 		req.URL.Scheme = "http"
-		port:=9000 + 10*lb.id + i1%lb.numServers
-		portS:= strconv.Itoa(port)
-		fmt.Println("Ports was:"+portS)
-		var target *url.URL
-		target, _  = url.Parse("http://127.0.0.1:"+portS)
-		req.URL.Host = target.Host
-		i1++;
+
+		if strings.HasPrefix(req.URL.Path, "/server1/") {
+			port:=9000 + 10*lb.id + i1%lb.numServers
+			portS:= strconv.Itoa(port)
+			fmt.Println("Ports was:"+portS)
+			var target *url.URL
+			target, _  = url.Parse("http://127.0.0.1:"+portS)
+			req.URL.Host = target.Host
+			i1++;
+		}
+
+		if strings.HasPrefix(req.URL.Path, "/server2/") {
+			port:=9100 + 10*lb.id + i2%lb.numServers
+			portS:= strconv.Itoa(port)
+			fmt.Println("Ports was:"+portS)
+			var target *url.URL
+			target, _  = url.Parse("http://127.0.0.1:"+portS)
+			req.URL.Host = target.Host
+			i2++;
+		}
+		
 	}
 
 	err = http.ListenAndServe(":"+lb.port, reverseProxy)
