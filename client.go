@@ -6,8 +6,12 @@ import (
 	"io/ioutil"
 	"runtime"
 	"time"
-        "strconv"
-        "os"
+    "strconv"
+    "os"
+    "github.com/gonum/plot"
+    "github.com/gonum/plot/plotter"
+    "github.com/gonum/plot/plotutil"
+    "github.com/gonum/plot/vg"
 )
 
 var(
@@ -34,6 +38,7 @@ func temp(server string, count *int, n int) {
 }
 
 func main() {
+        fmt.Println("Enter Command Type(1/2/3.., Number of Requests Cummulative , Number of Load Balancers")
         fmt.Println(os.Args)
         cmd_type := os.Args[1]
         number, _ := strconv.Atoi(os.Args[2])
@@ -80,34 +85,73 @@ func main() {
                 fmt.Println("Not implemented")
         }
 
-        time.Sleep(100*time.Second)
+        time.Sleep(10*time.Second)
        
-	fmt.Println("Complete");
+	    fmt.Println("Complete");
+        p, err := plot.New()
+        if err != nil {
+                panic(err)
+        }
+
+        p.Title.Text = "Client Request and Response Rate "
+        p.X.Label.Text = "Time"
+        p.Y.Label.Text = "Number"
+
+        //timeInterval:=100
+        //totalTime:=5000
+        //numPeriods := totalTime/timeInterval //(5secs/100ms)
+        numPeriods:= len(req_sent_per_time_server1)
+        pts1 := make(plotter.XYs, numPeriods)
+        pts2 := make(plotter.XYs, numPeriods)
+        for i := range pts1 {
+            pts1[i].X = float64(100*i)
+            pts2[i].X = float64(100*i)
+
+            pts1[i].Y =  float64(req_sent_per_time_server1[i])
+            pts2[i].Y =  float64(reply_recv_per_time_server1[i])
+        }
+
+
+        err = plotutil.AddLinePoints(p,
+            "Requests For Server 1", pts1,
+            "Responses Server 1", pts2)
+
+        if err != nil {
+             panic(err)
+        }
+
+        // Save the plot to a PNG file.
+        if err := p.Save(4*vg.Inch, 4*vg.Inch, "client1.png"); err != nil {
+            panic(err)
+        }
+
 }
 
 func counter_poller(number int){
      for{
-        reply_server1 := 0
-        reply_server2 := 0
-        time.Sleep(100*time.Millisecond)
-        for i:=0; i<number; i++{
-            if reply_recv_server1[i] != 0{
-                reply_server1++
+            reply_server1 := 0
+            reply_server2 := 0
+            time.Sleep(100*time.Millisecond)
+            for i:=0; i<number; i++{
+                if reply_recv_server1[i] != 0{
+                    reply_server1++
+                }
+                if reply_recv_server2[i] != 0{
+                    reply_server2++
+                }
             }
-            if reply_recv_server2[i] != 0{
-                reply_server2++
-            }
-        }
-        req_sent_per_time_server1 = append(req_sent_per_time_server1, req_sent_server1)
-        req_sent_per_time_server2 = append(req_sent_per_time_server2, req_sent_server2)
-        reply_recv_per_time_server1 = append(reply_recv_per_time_server1, reply_server1)
-        reply_recv_per_time_server2 = append(reply_recv_per_time_server2, reply_server2)
+            req_sent_per_time_server1 = append(req_sent_per_time_server1, req_sent_server1)
+            req_sent_per_time_server2 = append(req_sent_per_time_server2, req_sent_server2)
+            reply_recv_per_time_server1 = append(reply_recv_per_time_server1, reply_server1)
+            reply_recv_per_time_server2 = append(reply_recv_per_time_server2, reply_server2)
 
-        fmt.Println("Req to Server1", req_sent_per_time_server1)
-        fmt.Println("Req to Server2", req_sent_per_time_server2)
-        fmt.Println("Reply from Server1", reply_recv_per_time_server1)
-        fmt.Println("Reply from Server2", reply_recv_per_time_server2)
-    }
+            fmt.Println("Req to Server1", req_sent_per_time_server1)
+            fmt.Println("Req to Server2", req_sent_per_time_server2)
+            fmt.Println("Reply from Server1", reply_recv_per_time_server1)
+            fmt.Println("Reply from Server2", reply_recv_per_time_server2)
+
+        }
+        
 }
         
 
