@@ -10,8 +10,20 @@ import (
         "os"
 )
 
-func temp(server string, count *int) {
-	resp, err := http.Get("http://localhost:8000/" + server + "/")
+var(
+        req_sent_server1 int
+        req_sent_server2 int
+        req_sent_per_time_server1 []int
+        req_sent_per_time_server2 []int
+        reply_recv_per_time_server1 []int
+        reply_recv_per_time_server2 []int
+        reply_recv_server1 []int
+        reply_recv_server2 []int
+) 
+
+func temp(server string, count *int, n int) {
+        port_number := 8000 + n
+	resp, err := http.Get("http://localhost:" + strconv.Itoa(port_number) + "/" + server + "/")
 		if err!=nil{
 			fmt.Println("not working")	
 		}else{
@@ -25,36 +37,43 @@ func main() {
         fmt.Println(os.Args)
         cmd_type := os.Args[1]
         number, _ := strconv.Atoi(os.Args[2])
-        req_sent_server1 := 0
-        req_sent_server2 := 0
-        reply_server1 := 0
-        reply_server2 := 0
+        lb_id,_ := strconv.Atoi(os.Args[3])
 
-        reply_recv_server1 := make([]int, number)
-        reply_recv_server2 := make([]int, number)
+        req_sent_server1 = 0
+        req_sent_server2 = 0
+        req_sent_per_time_server1 = make([]int, 0)
+        req_sent_per_time_server2 = make([]int, 0)
+        reply_recv_per_time_server1 = make([]int, 0)
+        reply_recv_per_time_server2 = make([]int, 0)
+        reply_recv_server1 = make([]int, number)
+        reply_recv_server2 = make([]int, number)
+
+
+        runtime.GOMAXPROCS(runtime.NumCPU() + 1)
+        go counter_poller(number)
 
         switch cmd_type {
             case "1":
                 //burst 
                 runtime.GOMAXPROCS(runtime.NumCPU() + 5)
                 for i:=0;i<number/2;i++{
-                        go temp("server1", &reply_recv_server1[i])
+                        go temp("server1", &reply_recv_server1[i], i%lb_id)
                         req_sent_server1++
-                        go temp("server2", &reply_recv_server2[i])
+                        go temp("server2", &reply_recv_server2[i], i%lb_id)
                         req_sent_server2++
                 }
             case "2": 
                 //to server1
                 runtime.GOMAXPROCS(runtime.NumCPU() + 5)
                 for i:=0;i<number;i++{
-                        go temp("server1", &reply_recv_server1[i])
+                        go temp("server1", &reply_recv_server1[i], i%lb_id)
                         req_sent_server1++
                 }
             case "3": 
                 //to server2
                 runtime.GOMAXPROCS(runtime.NumCPU() + 5)
                 for i:=0;i<number;i++{
-                        go temp("server2", &reply_recv_server2[i])
+                        go temp("server2", &reply_recv_server2[i], i%lb_id)
                         req_sent_server2++
                 }
             default: 
@@ -62,16 +81,33 @@ func main() {
         }
 
         time.Sleep(100*time.Second)
-	for i:=0; i<number; i++{
+       
+	fmt.Println("Complete");
+}
+
+func counter_poller(number int){
+     for{
+        reply_server1 := 0
+        reply_server2 := 0
+        time.Sleep(100*time.Millisecond)
+        for i:=0; i<number; i++{
             if reply_recv_server1[i] != 0{
                 reply_server1++
             }
             if reply_recv_server2[i] != 0{
                 reply_server2++
             }
-	}
-	fmt.Println("Complete");
+        }
+        req_sent_per_time_server1 = append(req_sent_per_time_server1, req_sent_server1)
+        req_sent_per_time_server2 = append(req_sent_per_time_server2, req_sent_server2)
+        reply_recv_per_time_server1 = append(reply_recv_per_time_server1, reply_server1)
+        reply_recv_per_time_server2 = append(reply_recv_per_time_server2, reply_server2)
+
+        fmt.Println("Req to Server1", req_sent_per_time_server1)
+        fmt.Println("Req to Server2", req_sent_per_time_server2)
+        fmt.Println("Reply from Server1", reply_recv_per_time_server1)
+        fmt.Println("Reply from Server2", reply_recv_per_time_server2)
+    }
 }
-
-
+        
 
