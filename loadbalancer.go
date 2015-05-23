@@ -67,6 +67,7 @@ func main() {
 
 	i1:=0
 	i2:=0
+
 	reverseProxy := new(httputil.ReverseProxy)
 
 	reverseProxy.Director = func(req *http.Request) {
@@ -80,8 +81,9 @@ func main() {
 			var target *url.URL
 			target, _  = url.Parse("http://127.0.0.1:"+portS)
 			req.URL.Host = target.Host
-                        req_per_server1[i1]++
-			i1++;
+            req_per_server1[i1]++
+			i1= (i1 +1)%lb.numServers;
+
 		}
 
 		if strings.HasPrefix(req.URL.Path, "/server2/") {
@@ -91,9 +93,11 @@ func main() {
 			var target *url.URL
 			target, _  = url.Parse("http://127.0.0.1:"+portS)
 			req.URL.Host = target.Host
-                        req_per_server2[i2]++
-			i2++;
+            req_per_server2[i2]++
+			i2= (i2 +1)%lb.numServers;
 		}
+
+
 		
 	}
 

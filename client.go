@@ -79,7 +79,7 @@ func main() {
                         req_sent_server1++
                         go temp("server2", &reply_recv_server2[i], i%lb_id)
                         req_sent_server2++
-                        time.Sleep(3*time.Millisecond)
+                        time.Sleep(10*time.Millisecond)
                 }
             case "2": 
                 //to server1
@@ -99,7 +99,7 @@ func main() {
                 fmt.Println("Not implemented")
         }
 
-        time.Sleep(10*time.Second)
+        time.Sleep(3*time.Second)
        
 	    fmt.Println("Complete");
         p, err := plot.New()
@@ -114,7 +114,7 @@ func main() {
         //timeInterval:=100
         //totalTime:=5000
         //numPeriods := totalTime/timeInterval //(5secs/100ms)
-        numPeriods:= len(req_sent_per_time_server1)
+        numPeriods:= 100//len(req_sent_per_time_server1)
         pts1 := make(plotter.XYs, numPeriods)
         pts2 := make(plotter.XYs, numPeriods)
         for i := range pts1 {
@@ -139,8 +139,8 @@ func main() {
             panic(err)
         }
 
-        fmt.Println("Req to Server1", req_sent_per_time_server1)
-        fmt.Println("Reply from Server1", reply_recv_per_time_server1)
+        //fmt.Println("Req to Server1", req_sent_per_time_server1)
+        //fmt.Println("Reply from Server1", reply_recv_per_time_server1)
 
 }
 
@@ -148,7 +148,7 @@ func counter_poller(number int){
      for{
             reply_server1 := 0
             reply_server2 := 0
-            time.Sleep(1*time.Millisecond)
+            time.Sleep(time.Millisecond*5)
             for i:=0; i<number; i++{
                 if reply_recv_server1[i] != 0{
                     reply_server1++
