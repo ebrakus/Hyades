@@ -11,6 +11,9 @@ import (
 	"strings"
     "time"
     "runtime"
+    "encoding/json"
+    "net/rpc"
+    "net"
 )
 
 
@@ -25,11 +28,16 @@ type LoadBalancer struct {
 	load2 []int			/*Load2 of server set of other load balancers*/
 	curLoad1 int 		/*Self's Load on server set 1*/
 	curLoad2 int 		/*Self's Load on server set 2*/
-
-	curLoad1_Others []int /*Load of Other LoadBalancer's Server Set 1*/
-	curLoad2_Others []int /*Load of Other LoadBalancer's Server Set 2*/
 }
 
+type jsonMessage struct{
+    OpCode      string
+    LbId        int
+    Load        [2]int
+    ServerSet1  string
+    ServerSet2  string
+}
+ 
 func(lb *LoadBalancer) Init(id int, numServers int){
 
 	lb.id = id
@@ -55,6 +63,9 @@ func(lb *LoadBalancer) Init(id int, numServers int){
 	lb.numLB = 0
 	lb.curLoad1 = 0
 	lb.curLoad2 = 0 
+
+        runtime.GOMAXPROCS(runtime.NumCPU() + 1)
+        go lb.ServeBack()
 }
 
 
@@ -103,10 +114,74 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
 		lb.curLoad2 = rand.Intn(100)
 		/*Have to Send*/
 		time.Sleep(time.Second)
+
+                //Call primary RPC
+                e := lb.NewClient(primary_addr)
+                if e != nil {
+                    fmt.Println("Error in calling RPC", e)
+                }
 	}
 }
+   
+func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
+    var data jsonMessage 
+    e := json.Unmarshal(in, &data)
+    if e!= nil{
+        return e
+    }
+    if data.OpCode == "loadUpdate"{
+        self.load1[data.LbId] = data.Load[0] 
+        self.load2[data.LbId] = data.Load[1] 
+    }
+    *n = 1
 
+    return nil
+}
 
+func (self *LoadBalancer)NewClient(addr string) error {
+    var data jsonMessage
+    data.OpCode = "loadUpdate"
+    data.LbId = self.id
+    data.Load[0] = self.curLoad1
+    data.Load[1] = self.curLoad2
+
+    b, e := json.Marshal(data)
+    if e != nil{
+        return e
+    }
+
+    conn, e := rpc.DialHTTP("tcp", addr)
+    if e != nil {
+            return e
+    }
+
+    fmt.Printf("connection established")
+    // perform the call
+    ret := 0
+    e = conn.Call("LoadBalancer.NewMessage", b, &ret)
+    if e != nil {
+            conn.Close()
+            return e
+    }
+
+    // close the connection
+    return conn.Close()
+}
+
+func (self *LoadBalancer)ServeBack() error {
+	newServer := rpc.NewServer()
+	e := newServer.RegisterName("LoadBalancer", self)
+
+	if e != nil {
+		return e
+	}
+
+	l, e := net.Listen("tcp", ":"+self.port)
+	if e != nil {
+		return e
+	}
+	return http.Serve(l, newServer)
+}
 
 func main() {
 
@@ -155,10 +230,4 @@ func main() {
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
-
-	
-
-
-
 }
-
