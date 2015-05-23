@@ -14,6 +14,7 @@ import (
     "encoding/json"
     "net/rpc"
     "net"
+    "math/rand"
 )
 
 
@@ -21,6 +22,8 @@ type LoadBalancer struct {
 	id int				/*Identification of load balancer*/
 	port string			/*Port it is listening on*/
 	numLB int			/*Number of other Load Balancers active*/
+	portsLB []string
+	aliveLB[] bool
 	numServers int		/*Number of servers in each of the server sets*/
 	servers1 []string  	/*Server set 2's IP's*/
 	servers2 []string	/*Server set 2's IP's*/
@@ -59,6 +62,19 @@ func(lb *LoadBalancer) Init(id int, numServers int){
 		lb.servers2 = append(lb.servers2 ,strconv.Itoa(9100 + 10*lb.id + i))
 		lb.load2 = append(lb.load2,0)
 	}
+
+	lb.portsLB = make([]string,10)
+	lb.aliveLB = make([]bool,10)
+
+	for i:=0;i<10;i++{
+		lb.portsLB[i]=strconv.Itoa(8000 + i)
+		if i!=lb.id{
+			lb.aliveLB[i]=false
+		}
+	}
+
+	lb.aliveLB[0]=true
+	lb.aliveLB[1]=true
 
 	lb.numLB = 0
 	lb.curLoad1 = 0
@@ -116,7 +132,7 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
 		time.Sleep(time.Second)
 
                 //Call primary RPC
-                e := lb.NewClient(primary_addr)
+                e := lb.NewClient("127.0.0.1:"+lb.portsLB[0])
                 if e != nil {
                     fmt.Println("Error in calling RPC", e)
                 }
@@ -138,7 +154,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
     return nil
 }
 
-func (self *LoadBalancer)NewClient(addr string) error {
+func (self *LoadBalancer) NewClient(addr string) error {
     var data jsonMessage
     data.OpCode = "loadUpdate"
     data.LbId = self.id
@@ -194,7 +210,7 @@ func main() {
 	fmt.Println("Id and numservers are",lb.id,lb.numServers)
 
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
-	go lb.updateLoadMatrix()
+	go lb.UpdateLoadMatrix()
 
 	i1:=0
 	i2:=0
