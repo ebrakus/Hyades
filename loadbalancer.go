@@ -61,16 +61,16 @@ func(lb *LoadBalancer) Init(id int, numServers int){
 	lb.servers1 = make([]string,0)
 	lb.servers2 = make([]string,0)
 
-	lb.load1 = make([]int,0)
-	lb.load2 = make([]int,0)
+	lb.load1 = make([]int,lb.numServers)
+	lb.load2 = make([]int,lb.numServers)
 
 	lb.port = strconv.Itoa(8000 + lb.id)
 
 	for i:=0;i<lb.numServers;i++{
 		lb.servers1 = append(lb.servers1 ,strconv.Itoa(9000 + 10*lb.id + i))
-		lb.load1 = append(lb.load1,0)
+		lb.load1[i]=0
 		lb.servers2 = append(lb.servers2 ,strconv.Itoa(9100 + 10*lb.id + i))
-		lb.load2 = append(lb.load2,0)
+		lb.load2[i]=0
 	}
 
 	lb.portsLB = make([]string,10)
@@ -147,8 +147,8 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 func(lb *LoadBalancer) UpdateLoadMatrix(){
     var data jsonMessage
 	for {
-		lb.curLoad1 = rand.Intn(100)
-		lb.curLoad2 = rand.Intn(100)
+		lb.curLoad1 = rand.Intn(10)
+		lb.curLoad2 = rand.Intn(10)
 		/*Have to Send*/
 		time.Sleep(time.Second)
 
@@ -201,6 +201,8 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
             receivedFrom[data.LbId] = true
             self.curLoad1_other[data.LbId] = data.Load[0] 
             self.curLoad2_other[data.LbId] = data.Load[1] 
+            self.curLoad1_other[self.id] = self.curLoad1
+            self.curLoad2_other[self.id] = self.curLoad2
         case "updateFromPrimary":
             /* Received data from Primary*/
             e = json.Unmarshal(in, &toSend)
@@ -300,28 +302,34 @@ func main() {
 		var port int
 		suffix:=""
 		if strings.HasPrefix(req.URL.Path, "/server1/") {
+				fmt.Println("Calling Load Matix for curLoad1_other")
 				sendToLB := lb.whereToSend(&lb.curLoad1_other,10)
 				if  lb.id != sendToLB{/*To others*/
 					port = 8000 + sendToLB
 					suffix = "/server1/"
 					lb.curLoad1_other[sendToLB]++
 				}else{
-					sendToLB = lb.whereToSend(&lb.load1,lb.numServers)
+					fmt.Println("Calling Load Matix for lb.load1")
+					sendToServer:= lb.whereToSend(&lb.load1,lb.numServers)
 					port = 9000 + 10*lb.id + sendToLB
-					lb.load1[sendToLB]++
+					lb.load1[sendToServer]++
+					lb.curLoad1++
 				}
 		}
 
 		if strings.HasPrefix(req.URL.Path, "/server2/") {
+				fmt.Println("Calling Load Matix for curLoad2_other")
 				sendToLB := lb.whereToSend(&lb.curLoad2_other,10)
 				if  lb.id != sendToLB{/*To others*/
 					port = 8000 + sendToLB
 					suffix = "/server2/"
 					lb.curLoad2_other[sendToLB]++
 				}else{
-					sendToLB = lb.whereToSend(&lb.load2,lb.numServers)
+					fmt.Println("Calling Load Matix for lb.load2")
+					sendToServer := lb.whereToSend(&lb.load2,lb.numServers)
 					port = 9100 + 10*lb.id + sendToLB
-					lb.load2[sendToLB]++
+					lb.load2[sendToServer]++
+					lb.curLoad2++
 				}
 		}
 
@@ -358,8 +366,8 @@ func(lb *LoadBalancer) whereToSend(val *[]int,n int) int{
 		temp:=0
 		var i int
 		for i=0;i<n;i++{
-			if lb.load1[i]!=-1{
-				temp= temp + lb.load1[i]
+			if (*val)[i]!=-1{
+				temp= temp + (*val)[i]
 			}
 			if temp > r{
 				break
