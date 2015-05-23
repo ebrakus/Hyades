@@ -17,7 +17,7 @@ import (
     "math/rand"
 )
 
-var receivedFrom []bool
+
 type LoadBalancer struct {
 	id int				/*Identification of load balancer*/
 	port string			/*Port it is listening on*/
@@ -27,13 +27,12 @@ type LoadBalancer struct {
 	numServers int		/*Number of servers in each of the server sets*/
 	servers1 []string  	/*Server set 2's IP's*/
 	servers2 []string	/*Server set 2's IP's*/
-	load1 []int 		/*Load of self server set 1*/
-	load2 []int 		/*Load of self server set 2*/
+	load1 []int 		/*Load1 of server set of other load balancers*/
+	load2 []int			/*Load2 of server set of other load balancers*/
 	curLoad1 int 		/*Self's Load on server set 1*/
 	curLoad2 int 		/*Self's Load on server set 2*/
-
-	curLoad1_other []int 		/*Load1 of server set of other load balancers*/
-	curLoad2_other []int 		/*Load2 of server set of other load balancers*/
+	curLoad1_other []int 		/*Self's Load on server set 1*/
+	curLoad2_other []int 		/*Self's Load on server set 2*/
 }
 
 type jsonMessage struct{
@@ -42,13 +41,6 @@ type jsonMessage struct{
     Load        [2]int
     ServerSet1  string
     ServerSet2  string
-}
-
-type jsonMessagePrimary struct{
-    OpCode      string
-    LbId        int
-    CurLoad1_other [10]int
-    CurLoad2_other [10]int
 }
  
 func(lb *LoadBalancer) Init(id int, numServers int){
@@ -75,8 +67,6 @@ func(lb *LoadBalancer) Init(id int, numServers int){
 
 	lb.portsLB = make([]string,10)
 	lb.aliveLB = make([]bool,10)
-	receivedFrom = make([]bool,10)
-        receivedFrom[lb.id] = true
 
 	for i:=0;i<10;i++{
 		lb.portsLB[i]=strconv.Itoa(8000 + i)
@@ -92,18 +82,11 @@ func(lb *LoadBalancer) Init(id int, numServers int){
 	lb.curLoad1 = 0
 	lb.curLoad2 = 0 
 
-        lb.curLoad1_other = make([]int, 10)
-        lb.curLoad2_other = make([]int, 10)
-        for i:=0; i < 10; i++{
-            lb.curLoad1_other[i] = -1
-            lb.curLoad2_other[i] = -1
-        }
-
         runtime.GOMAXPROCS(runtime.NumCPU() + 1)
         go lb.ServeBack()
 }
 
-/*
+
 func(lb *LoadBalancer) ServeRequestsRR(){
 
 	i1:=0
@@ -142,10 +125,8 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 	}
 
 }
-*/
 
 func(lb *LoadBalancer) UpdateLoadMatrix(){
-    var data jsonMessage
 	for {
 		lb.curLoad1 = rand.Intn(100)
 		lb.curLoad2 = rand.Intn(100)
@@ -153,97 +134,40 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
 		time.Sleep(time.Second)
 
                 //Call primary RPC
-                if lb.port != lb.portsLB[0]{
-                    fmt.Println("Calling NewClient", lb.port)
-                    port, _ := strconv.Atoi(lb.portsLB[0])
-
-                    data.OpCode = "loadUpdate"
-                    data.LbId = lb.id
-                    data.Load[0] = lb.curLoad1
-                    data.Load[1] = lb.curLoad2
-
-                    b, _ := json.Marshal(data)
-
-                    e := lb.NewClient("127.0.0.1:"+strconv.Itoa(port - 2000), b)
-                    if e != nil {
-                        fmt.Println("Error in calling RPC", e)
-                    }
+                e := lb.NewClient("127.0.0.1:"+lb.portsLB[0])
+                if e != nil {
+                    fmt.Println("Error in calling RPC", e)
                 }
 	}
-}
-
-func isEqual(a, b []bool) bool{
-    if len(a) != len(b){
-        return false
-    }
-
-    for i:=0; i<len(a); i++{
-        if a[i] != b[i]{
-            return false
-        }
-    }
-
-    return true
 }
    
 func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
     var data jsonMessage 
-    var toSend jsonMessagePrimary
-
     e := json.Unmarshal(in, &data)
     if e!= nil{
         return e
     }
-
-    switch data.OpCode {
-        case "loadUpdate":
-            fmt.Println("Received JSON from", data)
-            receivedFrom[data.LbId] = true
-            self.curLoad1_other[data.LbId] = data.Load[0] 
-            self.curLoad2_other[data.LbId] = data.Load[1] 
-        case "updateFromPrimary":
-            /* Received data from Primary*/
-            e = json.Unmarshal(in, &toSend)
-            if e!= nil{
-                return e
-            }
-            fmt.Println("Received JSON from", toSend)
+    if data.OpCode == "loadUpdate"{
+        self.load1[data.LbId] = data.Load[0] 
+        self.load2[data.LbId] = data.Load[1] 
     }
     *n = 1
-    if isEqual(receivedFrom, self.aliveLB) == true && self.id == 0{     //TODO:Change this
-        /* Received from all alive. Send back info */
-        fmt.Println("Sending data to all other nodes")
-        toSend.OpCode = "updateFromPrimary"
-        toSend.LbId = self.id
-        for i:=0; i< 10; i++{
-            toSend.CurLoad1_other[i] = self.curLoad1_other[i]
-            toSend.CurLoad2_other[i] = self.curLoad2_other[i]
-        }
-        toSend.CurLoad1_other[self.id] = self.curLoad1
-        toSend.CurLoad2_other[self.id] = self.curLoad2
-
-        b, e := json.Marshal(toSend)
-        if e != nil{
-            return e
-        }
-
-        for i:=0; i<10; i++{
-            if self.aliveLB[i] == false || i == self.id{
-                continue
-            }
-            port, _ := strconv.Atoi(self.portsLB[i])
-            e = self.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
-            if e!= nil{
-                return e
-            }
-            receivedFrom[i] = false
-        }
-    }
 
     return nil
 }
 
-func (self *LoadBalancer) NewClient(addr string, b []byte) error {
+func (self *LoadBalancer) NewClient(addr string) error {
+    var data jsonMessage
+    data.OpCode = "loadUpdate"
+    data.LbId = self.id
+    data.Load[0] = self.curLoad1
+    data.Load[1] = self.curLoad2
+
+    b, e := json.Marshal(data)
+    if e != nil{
+        return e
+    }
+
     conn, e := rpc.DialHTTP("tcp", addr)
     if e != nil {
             return e
@@ -270,8 +194,7 @@ func (self *LoadBalancer)ServeBack() error {
 		return e
 	}
 
-        port, _ := strconv.Atoi(self.port)
-	l, e := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port - 2000))
+	l, e := net.Listen("tcp", ":"+self.port)
 	if e != nil {
 		return e
 	}
@@ -343,7 +266,7 @@ func main() {
 
 func(lb *LoadBalancer) whereToSend(val *[]int,n int) int{
 		sum:=0
-		fmt.Println("Load Matrix is :",(*val))
+
 		for i:=0;i<n;i++{
 			if (*val)[i]!=-1{
 			 sum+=(*val)[i]
@@ -367,3 +290,5 @@ func(lb *LoadBalancer) whereToSend(val *[]int,n int) int{
 		}	
 		return i
 }
+
+
