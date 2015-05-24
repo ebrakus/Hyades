@@ -29,11 +29,11 @@ type LoadBalancer struct {
 	servers2 []string	/*Server set 2's IP's*/
 	load1 []int 		/*Load of self server set 1*/
 	load2 []int 		/*Load of self server set 2*/
-	curLoad1 int 		/*Self's Load on server set 1*/
-	curLoad2 int 		/*Self's Load on server set 2*/
+	//curLoad1 int 		/*Self's Load on server set 1*/
+	//curLoad2 int 		/*Self's Load on server set 2*/
 
-	curLoad1_other []int 		/*Load1 of server set of other load balancers*/
-	curLoad2_other []int 		/*Load2 of server set of other load balancers*/
+	curLoad1 []int 		/*Load1 of server set of other load balancers*/
+	curLoad2 []int 		/*Load2 of server set of other load balancers*/
 }
 
 type jsonMessage struct{
@@ -47,8 +47,8 @@ type jsonMessage struct{
 type jsonMessagePrimary struct{
     OpCode      string
     LbId        int
-    CurLoad1_other [10]int
-    CurLoad2_other [10]int
+    CurLoad1 [10]int
+    CurLoad2 [10]int
 }
  
 func(lb *LoadBalancer) Init(id int, numServers int){
@@ -89,14 +89,19 @@ func(lb *LoadBalancer) Init(id int, numServers int){
 	lb.aliveLB[1]=true
 
 	lb.numLB = 0
-	lb.curLoad1 = 0
-	lb.curLoad2 = 0 
+	//lb.curLoad1 = 0
+	//lb.curLoad2 = 0 
 
-        lb.curLoad1_other = make([]int, 10)
-        lb.curLoad2_other = make([]int, 10)
+        lb.curLoad1 = make([]int, 10)
+        lb.curLoad2 = make([]int, 10)
         for i:=0; i < 10; i++{
-            lb.curLoad1_other[i] = -1
-            lb.curLoad2_other[i] = -1
+            if lb.aliveLB[i] == true {
+                lb.curLoad1[i] = 0
+                lb.curLoad2[i] = 0
+            }else {
+                lb.curLoad1[i] = -1
+                lb.curLoad2[i] = -1
+            }
         }
 
         runtime.GOMAXPROCS(runtime.NumCPU() + 1)
@@ -147,8 +152,8 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 func(lb *LoadBalancer) UpdateLoadMatrix(){
     var data jsonMessage
 	for {
-		//lb.curLoad1 = rand.Intn(10)
-		//lb.curLoad2 = rand.Intn(10)
+		//lb.curLoad1[lb.id] = rand.Intn(10)
+		//lb.curLoad2[lb.id] = rand.Intn(10)
 		/*Have to Send*/
 		time.Sleep(time.Second)
 
@@ -159,8 +164,8 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
 
                     data.OpCode = "loadUpdate"
                     data.LbId = lb.id
-                    data.Load[0] = lb.curLoad1
-                    data.Load[1] = lb.curLoad2
+                    data.Load[0] = lb.curLoad1[lb.id]
+                    data.Load[1] = lb.curLoad2[lb.id]
 
                     b, _ := json.Marshal(data)
 
@@ -199,10 +204,10 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
         case "loadUpdate":
             fmt.Println("Received JSON from", data)
             receivedFrom[data.LbId] = true
-            self.curLoad1_other[data.LbId] = data.Load[0] 
-            self.curLoad2_other[data.LbId] = data.Load[1] 
-            self.curLoad1_other[self.id] = self.curLoad1
-            self.curLoad2_other[self.id] = self.curLoad2
+            self.curLoad1[data.LbId] = data.Load[0] 
+            self.curLoad2[data.LbId] = data.Load[1] 
+            //self.curLoad1[self.id] = self.curLoad1
+            //self.curLoad2[self.id] = self.curLoad2
         case "updateFromPrimary":
             /* Received data from Primary*/
             e = json.Unmarshal(in, &toSend)
@@ -218,11 +223,11 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
         toSend.OpCode = "updateFromPrimary"
         toSend.LbId = self.id
         for i:=0; i< 10; i++{
-            toSend.CurLoad1_other[i] = self.curLoad1_other[i]
-            toSend.CurLoad2_other[i] = self.curLoad2_other[i]
+            toSend.CurLoad1[i] = self.curLoad1[i]
+            toSend.CurLoad2[i] = self.curLoad2[i]
         }
-        toSend.CurLoad1_other[self.id] = self.curLoad1
-        toSend.CurLoad2_other[self.id] = self.curLoad2
+        //toSend.CurLoad1_other[self.id] = self.curLoad1
+        //toSend.CurLoad2_other[self.id] = self.curLoad2
 
         b, e := json.Marshal(toSend)
         if e != nil{
@@ -304,38 +309,38 @@ func main() {
 		if strings.HasPrefix(req.URL.Path, "/server1/") {
 				
 				
-				sendToLB := lb.whereToSend(&lb.curLoad1_other,10)
+				sendToLB := lb.whereToSend(&lb.curLoad1,10)
 
 				if  lb.id != sendToLB{/*To others*/
-					fmt.Println("Calling Load Matix for curLoad1_other")
+					fmt.Println("Calling Load Matix for curLoad1")
 					port = 8000 + sendToLB
 					suffix = "/server1/"
-					lb.curLoad1_other[sendToLB]++
+					lb.curLoad1[sendToLB]++
 				}else{
 					fmt.Println("Calling Load Matix for lb.load1")
 					sendToServer:= lb.whereToSend(&lb.load1,lb.numServers)
 					port = 9000 + 10*lb.id + sendToServer
 					lb.load1[sendToServer]++
-					lb.curLoad1++
+					lb.curLoad1[lb.id]++
 				}
 		}
 
 		if strings.HasPrefix(req.URL.Path, "/server2/") {
 				
 				
-				sendToLB := lb.whereToSend(&lb.curLoad2_other,10)
+				sendToLB := lb.whereToSend(&lb.curLoad2,10)
 
 				if  lb.id != sendToLB{/*To others*/
-					fmt.Println("Calling Load Matix for curLoad2_other")
+					fmt.Println("Calling Load Matix for curLoad2")
 					port = 8000 + sendToLB
 					suffix = "/server2/"
-					lb.curLoad2_other[sendToLB]++
+					lb.curLoad2[sendToLB]++
 				}else{
 					fmt.Println("Calling Load Matix for lb.load2")
 					sendToServer := lb.whereToSend(&lb.load2,lb.numServers)
 					port = 9100 + 10*lb.id + sendToServer		
 					lb.load2[sendToServer]++
-					lb.curLoad2++
+					lb.curLoad2[lb.id]++
 				}
 		}
 
