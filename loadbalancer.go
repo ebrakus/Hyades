@@ -156,7 +156,7 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
 		time.Sleep(time.Second)
 
                 //Call primary RPC
-                if lb.port != lb.portsLB[lb.primary]{
+                if lb.primary >= 0 && lb.port != lb.portsLB[lb.primary]{
                     port, _ := strconv.Atoi(lb.portsLB[lb.primary])
                     fmt.Println("Calling NewClient", port - 2000)
 
@@ -208,11 +208,12 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
         case "coordinator":
             fmt.Println("Received ", data)
             self.primary = data.LbId
+            fmt.Println("CURRENT KNOWN PRIMARY", self.primary)
         case "election":
             fmt.Println("Received ", data)
             if data.LbId < self.primary {
                 self.primary = -1
-            }else{
+            }else if self.primary >= 0{
                 var reply_data jsonMessage
                 reply_data.OpCode = "realPrimary"
                 reply_data.LbId = self.id
@@ -283,7 +284,7 @@ func (self *LoadBalancer) NewClient(addr string, b []byte) error {
             return e
     }
 
-    fmt.Printf("connection established")
+    //fmt.Printf("connection established")
     // perform the call
     ret := 0
     e = conn.Call("LoadBalancer.NewMessage", b, &ret)
@@ -426,71 +427,72 @@ func(lb *LoadBalancer) findLeaderOnElection() {
 	var e error
 	count:=0
 	for {
-			if lb.primary == -1 {
-			   //Start an election
-			   count= 0
-			    data.OpCode = "election"
- 				data.LbId = lb.id
-			    b, _:= json.Marshal(&data)
-			    for i:=0;i< lb.id && lb.primary==-1;i++ {
-					port, _ := strconv.Atoi(lb.portsLB[i])
-           			e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
-					if e!=nil{
-		    			continue
-					}else{
-						lb.primary = -2
-						count++
-						break
-					}
-				}
-			}
-	}
+            if lb.primary == -1 {
+               //Start an election
+               count= 0
+                data.OpCode = "election"
+                    data.LbId = lb.id
+                b, _:= json.Marshal(&data)
+                for i:=0;i< lb.id && lb.primary==-1;i++ {
+                            port, _ := strconv.Atoi(lb.portsLB[i])
+                    e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
+                            if e!=nil{
+                            continue
+                            }else{
+                                    lb.primary = -2
+                                    count++
+                                    break
+                            }
+                    }
+            }
 
-	if count == 0{
-		// I am primary candidate
-		//Send health check on other nodes
-		data.OpCode = "healthCheck"
- 		data.LbId = lb.id
- 		b, _:= json.Marshal(&data)
-		majority:=false
-		for i:=lb.id+1;i<10;i++{
-			port, _ := strconv.Atoi(lb.portsLB[i])
-           	e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
-			nodesReachable:=0
-			if e!=nil{
-    			continue
-			}else{
-				nodesReachable++
-			}
+            if count == 0{
+                    // I am primary candidate
+                    //Send health check on other nodes
+                    data.OpCode = "healthCheck"
+                    data.LbId = lb.id
+                    b, _:= json.Marshal(&data)
+                    majority:=false
+                    for i:=lb.id+1;i<10;i++{
+                            port, _ := strconv.Atoi(lb.portsLB[i])
+                            e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
+                            nodesReachable:=0
+                            if e!=nil{
+                                    continue
+                            }else{
+                                    nodesReachable++
+                            }
 
-			if nodesReachable>(10/4){
-				majority=true
-			}
-		}
+                            if nodesReachable>1{        //TODO: Update majority
+                                    fmt.Println("GOT MAJORITY")
+                                    majority=true
+                            }
+                    }
 
-		
-		if majority ==true {
-			lb.primary = lb.id
-			data.OpCode = "coordinator"
- 		    data.LbId = lb.id
- 		    b, _:= json.Marshal(&data)
-			//Send “coordinator” to all
-			for i:=lb.id+1;i<10;i++{
-				port, _ := strconv.Atoi(lb.portsLB[i])
-           		e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
-				//Check error
-			}		
-		}else {
-			lb.primary = -1
-		}
-	}
+                    
+                    if majority ==true {
+                            lb.primary = lb.id
+                            data.OpCode = "coordinator"
+                        data.LbId = lb.id
+                        b, _:= json.Marshal(&data)
+                            //Send “coordinator” to all
+                            for i:=lb.id+1;i<10;i++{
+                                    port, _ := strconv.Atoi(lb.portsLB[i])
+                            e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
+                                    //Check error
+                            }		
+                    }else {
+                            lb.primary = -1
+                    }
+            }
 
-	if lb.primary == -2 {
-		time.Sleep(time.Second * 1)
-		if lb.primary == -2{
-				lb.primary = -1
-		}
-	}
+            if lb.primary == -2 {
+                    time.Sleep(time.Second * 1)
+                    if lb.primary == -2{
+                                    lb.primary = -1
+                    }
+            }
+        }
 
 }
 
