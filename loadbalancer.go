@@ -210,6 +210,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
             self.primary = data.LbId
             fmt.Println("CURRENT KNOWN PRIMARY", self.primary)
         case "election":
+            fmt.Printf("Current Primary %d-----", self.primary)
             fmt.Println("Received ", data)
             if data.LbId < self.primary {
                 self.primary = -1
@@ -458,10 +459,10 @@ func(lb *LoadBalancer) findLeaderOnElection() {
                     b, _:= json.Marshal(&data)
                     majority:=false
                      fmt.Println("Sending healthCheck message to everyone")
+                    nodesReachable:=0
                     for i:=lb.id+1;i<10;i++{
                             port, _ := strconv.Atoi(lb.portsLB[i])
                             e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
-                            nodesReachable:=0
                             if e!=nil{
                                     continue
                             }else{
@@ -471,6 +472,7 @@ func(lb *LoadBalancer) findLeaderOnElection() {
                             if nodesReachable>1{        //TODO: Update majority
                                     fmt.Println("GOT MAJORITY")
                                     majority=true
+                                    break
                             }
                     }
 
