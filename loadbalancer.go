@@ -101,7 +101,8 @@ func(lb *LoadBalancer) Init(id int, numServers int){
             }
         }
 
-        runtime.GOMAXPROCS(runtime.NumCPU() + 1)
+        runtime.GOMAXPROCS(runtime.NumCPU() + 2)
+        go lb.findLeaderOnElection()
         go lb.ServeBack()
 }
 
@@ -422,15 +423,16 @@ func(lb *LoadBalancer) whereToSend(val *[]int,n int) int{
 
 func(lb *LoadBalancer) findLeaderOnElection() {
 	var data jsonMessage
-	
+	var e error
+	count:=0
 	for {
-			if lb.primary = -1 {
+			if lb.primary == -1 {
 			   //Start an election
-			   count:= 0
+			   count= 0
 			    data.OpCode = "election"
  				data.LbId = lb.id
 			    b, _:= json.Marshal(&data)
-			    for i=0;i< lb.id && lb.primary==-1;i++ {
+			    for i:=0;i< lb.id && lb.primary==-1;i++ {
 					port, _ := strconv.Atoi(lb.portsLB[i])
            			e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
 					if e!=nil{
@@ -450,10 +452,10 @@ func(lb *LoadBalancer) findLeaderOnElection() {
 		data.OpCode = "healthCheck"
  		data.LbId = lb.id
  		b, _:= json.Marshal(&data)
-		majority=false
+		majority:=false
 		for i:=lb.id+1;i<10;i++{
 			port, _ := strconv.Atoi(lb.portsLB[i])
-           	e = self.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
+           	e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
 			nodesReachable:=0
 			if e!=nil{
     			continue
@@ -474,9 +476,8 @@ func(lb *LoadBalancer) findLeaderOnElection() {
  		    b, _:= json.Marshal(&data)
 			//Send “coordinator” to all
 			for i:=lb.id+1;i<10;i++{
-				b, _:= json.Marshal(&data)
 				port, _ := strconv.Atoi(lb.portsLB[i])
-           		e = self.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
+           		e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
 				//Check error
 			}		
 		}else {
