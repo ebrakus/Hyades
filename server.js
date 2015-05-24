@@ -1,5 +1,8 @@
 var http=require('http');
 var ports = [];
+var args = process.argv.slice(2);
+var numLB= args[0]
+var numServers= args[1]
 
 for(var i = 0; i < 6; i++) {
  ports.push(9000+i)
