@@ -176,6 +176,7 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
 	}
 }
 
+
 func isEqual(a, b []bool) bool{
     if len(a) != len(b){
         return false
@@ -391,3 +392,78 @@ func(lb *LoadBalancer) whereToSend(val *[]int,n int) int{
 		fmt.Println("Choosen id is :",i)
 		return i
 }
+
+
+func(lb *LoadBalancer) findLeaderOnElection() {
+	var data jsonMessage
+	
+	for {
+			if lb.primary = -1 {
+			   //Start an election
+			   count:= 0
+			    data.OpCode = "election"
+ 				data.LbId = lb.id
+			    b, _:= json.Marshal(&data)
+			    for i=0;i< lb.id && lb.primary==-1;i++ {
+					port, _ := strconv.Atoi(lb.portsLB[i])
+           			e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
+					if e!=nil{
+		    			continue
+					}else{
+						lb.primary = -2
+						count++
+						break
+					}
+				}
+			}
+	}
+
+	if count == 0{
+		// I am primary candidate
+		//Send health check on other nodes
+		data.OpCode = "healthCheck"
+ 		data.LbId = lb.id
+ 		b, _:= json.Marshal(&data)
+		majority=false
+		for i:=lb.id+1;i<10;i++{
+			port, _ := strconv.Atoi(lb.portsLB[i])
+           	e = self.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
+			nodesReachable:=0
+			if e!=nil{
+    			continue
+			}else{
+				nodesReachable++
+			}
+
+			if nodesReachable>(10/4){
+				majority=true
+			}
+		}
+
+		
+		if majority ==true {
+			lb.primary = lb.id
+			data.OpCode = "coordinator"
+ 		    data.LbId = lb.id
+ 		    b, _:= json.Marshal(&data)
+			//Send “coordinator” to all
+			for i:=lb.id+1;i<10;i++{
+				b, _:= json.Marshal(&data)
+				port, _ := strconv.Atoi(lb.portsLB[i])
+           		e = self.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
+				//Check error
+			}		
+		}else {
+			lb.primary = -1
+		}
+	}
+
+	if lb.primary == -2 {
+		time.Sleep(time.Second * 1)
+		if lb.primary == -2{
+				lb.primary = -1
+		}
+	}
+
+}
+
