@@ -426,33 +426,38 @@ func(lb *LoadBalancer) findLeaderOnElection() {
 	var data jsonMessage
 	var e error
 	count:=0
+	fmt.Println("Starting to find Leader")
 	for {
             if lb.primary == -1 {
-               //Start an election
-               count= 0
+            	fmt.Println("lb.primary is -1")
+                //Start an election
+                count= 0
                 data.OpCode = "election"
-                    data.LbId = lb.id
+                data.LbId = lb.id
                 b, _:= json.Marshal(&data)
+                fmt.Println("Sending election message to everyone")
                 for i:=0;i< lb.id && lb.primary==-1;i++ {
-                            port, _ := strconv.Atoi(lb.portsLB[i])
+                   port, _ := strconv.Atoi(lb.portsLB[i])
                     e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
-                            if e!=nil{
-                            continue
-                            }else{
-                                    lb.primary = -2
-                                    count++
-                                    break
-                            }
+                    if e!=nil{
+                    	continue
+                    }else{
+                        lb.primary = -2
+                        count++
+                        break
                     }
+                }
             }
 
             if count == 0{
+            		fmt.Println("I am primary")
                     // I am primary candidate
                     //Send health check on other nodes
                     data.OpCode = "healthCheck"
                     data.LbId = lb.id
                     b, _:= json.Marshal(&data)
                     majority:=false
+                     fmt.Println("Sending healthCheck message to everyone")
                     for i:=lb.id+1;i<10;i++{
                             port, _ := strconv.Atoi(lb.portsLB[i])
                             e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
@@ -474,6 +479,7 @@ func(lb *LoadBalancer) findLeaderOnElection() {
                             lb.primary = lb.id
                             data.OpCode = "coordinator"
                         data.LbId = lb.id
+                        fmt.Println("Sending coordinator message to everyone")
                         b, _:= json.Marshal(&data)
                             //Send “coordinator” to all
                             for i:=lb.id+1;i<10;i++{
@@ -487,8 +493,10 @@ func(lb *LoadBalancer) findLeaderOnElection() {
             }
 
             if lb.primary == -2 {
+            		fmt.Println("lb.primary ==-2")
                     time.Sleep(time.Second * 1)
                     if lb.primary == -2{
+                    		fmt.Println("lb.primary is still -2")
                                     lb.primary = -1
                     }
             }
