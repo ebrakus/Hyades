@@ -147,8 +147,8 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 func(lb *LoadBalancer) UpdateLoadMatrix(){
     var data jsonMessage
 	for {
-		lb.curLoad1 = rand.Intn(10)
-		lb.curLoad2 = rand.Intn(10)
+		//lb.curLoad1 = rand.Intn(10)
+		//lb.curLoad2 = rand.Intn(10)
 		/*Have to Send*/
 		time.Sleep(time.Second)
 
@@ -302,32 +302,38 @@ func main() {
 		var port int
 		suffix:=""
 		if strings.HasPrefix(req.URL.Path, "/server1/") {
-				fmt.Println("Calling Load Matix for curLoad1_other")
+				lb.curLoad1++
+				
 				sendToLB := lb.whereToSend(&lb.curLoad1_other,10)
+
 				if  lb.id != sendToLB{/*To others*/
+					fmt.Println("Calling Load Matix for curLoad1_other")
 					port = 8000 + sendToLB
 					suffix = "/server1/"
 					lb.curLoad1_other[sendToLB]++
 				}else{
 					fmt.Println("Calling Load Matix for lb.load1")
 					sendToServer:= lb.whereToSend(&lb.load1,lb.numServers)
-					port = 9000 + 10*lb.id + sendToLB
+					port = 9000 + 10*lb.id + sendToServer
 					lb.load1[sendToServer]++
 					lb.curLoad1++
 				}
 		}
 
 		if strings.HasPrefix(req.URL.Path, "/server2/") {
-				fmt.Println("Calling Load Matix for curLoad2_other")
+				lb.curLoad2++
+				
 				sendToLB := lb.whereToSend(&lb.curLoad2_other,10)
+
 				if  lb.id != sendToLB{/*To others*/
+					fmt.Println("Calling Load Matix for curLoad2_other")
 					port = 8000 + sendToLB
 					suffix = "/server2/"
 					lb.curLoad2_other[sendToLB]++
 				}else{
 					fmt.Println("Calling Load Matix for lb.load2")
 					sendToServer := lb.whereToSend(&lb.load2,lb.numServers)
-					port = 9100 + 10*lb.id + sendToLB
+					port = 9100 + 10*lb.id + sendToServer		
 					lb.load2[sendToServer]++
 					lb.curLoad2++
 				}
@@ -351,27 +357,32 @@ func main() {
 
 func(lb *LoadBalancer) whereToSend(val *[]int,n int) int{
 		sum:=0
+		count:=0
 		fmt.Println("Load Matrix is :",(*val))
 		for i:=0;i<n;i++{
 			if (*val)[i]!=-1{
 			 sum+=(*val)[i]
+			 count++
 			}
 		}
 
-		if sum==0{
+		if sum==0 {
 			return lb.id
 		}
+		sum2:=(count-1)*sum
 
-		r :=rand.Intn(sum)
+		r :=rand.Intn(sum2)
 		temp:=0
 		var i int
 		for i=0;i<n;i++{
+
 			if (*val)[i]!=-1{
-				temp= temp + (*val)[i]
+				temp= temp + (sum-(*val)[i])
 			}
 			if temp > r{
 				break
 			}	
 		}	
+		fmt.Println("Choosen id is :",i)
 		return i
 }

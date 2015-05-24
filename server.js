@@ -1,9 +1,11 @@
 var http=require('http');
-var ports = [9000,9100];
+var ports = [];
 
-for(var i = 1; i < 12; i++) {
+for(var i = 0; i < 6; i++) {
  ports.push(9000+i)
  ports.push(9100+i)
+ ports.push(9010+i)
+ ports.push(9110+i)
 }
 
 var servers = [];

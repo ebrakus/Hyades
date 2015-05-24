@@ -27,8 +27,8 @@ var(
 ) 
 
 func temp(server string, count *int, n int) {
-        port_number := 8000 + n
 
+        port_number := 8000 + n
         transport := &http.Transport {
             Proxy: http.ProxyFromEnvironment,
             Dial: (&net.Dialer{Timeout: 0,KeepAlive: 0}).Dial,
@@ -85,7 +85,7 @@ func main() {
                 //to server1
                 runtime.GOMAXPROCS(runtime.NumCPU() + 5)
                 for i:=0;i<number;i++{
-                        go temp("server1", &reply_recv_server1[i], i%lb_id)
+                        temp("server1", &reply_recv_server1[i], i%lb_id)
                         req_sent_server1++
                 }
             case "3": 

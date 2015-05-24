@@ -281,6 +281,7 @@ func(lb *LoadBalancer) whereToSend(val *[]int,n int) int{
 		temp:=0
 		var i int
 		for i=0;i<n;i++{
+			
 			if lb.load1[i]!=-1{
 				temp= temp + lb.load1[i]
 			}
