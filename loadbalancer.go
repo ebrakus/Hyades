@@ -302,7 +302,7 @@ func main() {
 		var port int
 		suffix:=""
 		if strings.HasPrefix(req.URL.Path, "/server1/") {
-				lb.curLoad1++
+				
 				
 				sendToLB := lb.whereToSend(&lb.curLoad1_other,10)
 
@@ -321,7 +321,7 @@ func main() {
 		}
 
 		if strings.HasPrefix(req.URL.Path, "/server2/") {
-				lb.curLoad2++
+				
 				
 				sendToLB := lb.whereToSend(&lb.curLoad2_other,10)
 
@@ -372,6 +372,7 @@ func(lb *LoadBalancer) whereToSend(val *[]int,n int) int{
 		sum2:=(count-1)*sum
 
 		r :=rand.Intn(sum2)
+		fmt.Println("Random value is :",r)
 		temp:=0
 		var i int
 		for i=0;i<n;i++{
