@@ -6,10 +6,12 @@ var numServers= args[1]
 
 for(var j = 0; j < numLB; j++){
     for(var i = 0; i < numServers; i++) {
-        ports.push(9000+ j*numServers + i)
-        ports.push(9100+ j*numServers + i)
+        ports.push(9000+ j + i*10)
+        ports.push(9100+ j + i*10)
     }
 }
+
+console.log("Number of port" + ports)
 
 var servers = [];
 var s;

@@ -87,10 +87,9 @@ func(lb *LoadBalancer) Init(id int, numServers int){
 
 	lb.aliveLB[0]=true
 	lb.aliveLB[1]=true
+	lb.aliveLB[2]=true
 
 	lb.numLB = 0
-	//lb.curLoad1 = 0
-	//lb.curLoad2 = 0 
 
         lb.curLoad1 = make([]int, 10)
         lb.curLoad2 = make([]int, 10)
@@ -159,8 +158,8 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
 
                 //Call primary RPC
                 if lb.port != lb.portsLB[0]{
-                    fmt.Println("Calling NewClient", lb.port)
                     port, _ := strconv.Atoi(lb.portsLB[0])
+                    fmt.Println("Calling NewClient", port - 2000)
 
                     data.OpCode = "loadUpdate"
                     data.LbId = lb.id
