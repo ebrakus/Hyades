@@ -4,11 +4,11 @@ var args = process.argv.slice(2);
 var numLB= args[0]
 var numServers= args[1]
 
-for(var i = 0; i < 6; i++) {
- ports.push(9000+i)
- ports.push(9100+i)
- ports.push(9010+i)
- ports.push(9110+i)
+for(var j = 0; j < numLB; j++){
+    for(var i = 0; i < numServers; i++) {
+        ports.push(9000+ j*numServers + i)
+        ports.push(9100+ j*numServers + i)
+    }
 }
 
 var servers = [];
