@@ -22,6 +22,7 @@ type LoadBalancer struct {
 	id int				/*Identification of load balancer*/
 	port string			/*Port it is listening on*/
 	numLB int			/*Number of other Load Balancers active*/
+        primary int                     /* Id of the current known primary */
 	portsLB []string
 	aliveLB[] bool
 	numServers int		/*Number of servers in each of the server sets*/
@@ -29,8 +30,6 @@ type LoadBalancer struct {
 	servers2 []string	/*Server set 2's IP's*/
 	load1 []int 		/*Load of self server set 1*/
 	load2 []int 		/*Load of self server set 2*/
-	//curLoad1 int 		/*Self's Load on server set 1*/
-	//curLoad2 int 		/*Self's Load on server set 2*/
 
 	curLoad1 []int 		/*Load1 of server set of other load balancers*/
 	curLoad2 []int 		/*Load2 of server set of other load balancers*/
@@ -85,9 +84,8 @@ func(lb *LoadBalancer) Init(id int, numServers int){
 		}
 	}
 
-	lb.aliveLB[0]=true
-	lb.aliveLB[1]=true
-	lb.aliveLB[2]=true
+	lb.aliveLB[lb.id]=true
+        lb.primary = -1
 
 	lb.numLB = 0
 
@@ -157,8 +155,8 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
 		time.Sleep(time.Second)
 
                 //Call primary RPC
-                if lb.port != lb.portsLB[0]{
-                    port, _ := strconv.Atoi(lb.portsLB[0])
+                if lb.port != lb.portsLB[lb.primary]{
+                    port, _ := strconv.Atoi(lb.portsLB[lb.primary])
                     fmt.Println("Calling NewClient", port - 2000)
 
                     data.OpCode = "loadUpdate"
@@ -167,7 +165,6 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
                     data.Load[1] = lb.curLoad2[lb.id]
 
                     b, _ := json.Marshal(data)
-
                     e := lb.NewClient("127.0.0.1:"+strconv.Itoa(port - 2000), b)
                     if e != nil {
                         fmt.Println("Error in calling RPC", e)
@@ -202,12 +199,37 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
 
     switch data.OpCode {
         case "loadUpdate":
-            fmt.Println("Received JSON from", data)
+            fmt.Println("Received ", data)
+            self.aliveLB[data.LbId] = true
             receivedFrom[data.LbId] = true
             self.curLoad1[data.LbId] = data.Load[0] 
             self.curLoad2[data.LbId] = data.Load[1] 
-            //self.curLoad1[self.id] = self.curLoad1
-            //self.curLoad2[self.id] = self.curLoad2
+        case "coordinator":
+            fmt.Println("Received ", data)
+            self.primary = data.LbId
+        case "election":
+            fmt.Println("Received ", data)
+            if data.LbId < self.primary {
+                self.primary = -1
+            }else{
+                var reply_data jsonMessage
+                reply_data.OpCode = "realPrimary"
+                reply_data.LbId = self.id
+                reply_data.Load[0] = self.primary
+                //Send "realPrimary" back
+                b, _ := json.Marshal(&reply_data)
+                port, _ := strconv.Atoi(self.portsLB[self.primary])
+                e = self.NewClient("127.0.0.1:"+strconv.Itoa(port - 2000), b)
+                if e != nil {
+                    fmt.Println("Error in calling RPC", e)
+                }
+            }
+        case "realPrimary":
+            fmt.Println("Received ", data)
+            primary := data.Load[0]
+            if primary < self.primary{
+                self.primary = primary
+            }
         case "updateFromPrimary":
             /* Received data from Primary*/
             e = json.Unmarshal(in, &toSend)
@@ -215,9 +237,12 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
                 return e
             }
             fmt.Println("Received JSON from", toSend)
+        case "healthCheck":
+            e = nil
+
     }
     *n = 1
-    if isEqual(receivedFrom, self.aliveLB) == true && self.id == 0{     //TODO:Change this
+    if isEqual(receivedFrom, self.aliveLB) == true && self.id == self.primary{
         /* Received from all alive. Send back info */
         fmt.Println("Sending data to all other nodes")
         toSend.OpCode = "updateFromPrimary"
@@ -231,7 +256,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
 
         b, e := json.Marshal(toSend)
         if e != nil{
-            return e
+            //return e
         }
 
         for i:=0; i<10; i++{
@@ -241,7 +266,8 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
             port, _ := strconv.Atoi(self.portsLB[i])
             e = self.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
             if e!= nil{
-                return e
+                //Looks like the node is dead
+                self.aliveLB[i] = false
             }
             receivedFrom[i] = false
         }
