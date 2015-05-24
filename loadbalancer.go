@@ -156,6 +156,11 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
 		time.Sleep(time.Second)
 
                 //Call primary RPC
+                fmt.Printf("UpdateLoadMatrix %d, %s\n", lb.primary, lb.port)
+                if lb.primary >= 0{
+                    fmt.Printf("UpdateLoadMatrix primary:  %s\n",lb.portsLB[lb.primary])
+                }
+                    
                 if lb.primary >= 0 && lb.port != lb.portsLB[lb.primary]{
                     port, _ := strconv.Atoi(lb.portsLB[lb.primary])
                     fmt.Println("Calling NewClient", port - 2000)
@@ -193,9 +198,11 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
     var data jsonMessage 
     var toSend jsonMessagePrimary
 
+    fmt.Println("Received a new message")
     e := json.Unmarshal(in, &data)
     if e!= nil{
-        return e
+        fmt.Println("Unmarshalling error")
+        //return e
     }
 
     switch data.OpCode {
@@ -241,7 +248,10 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
             }
             fmt.Println("Received JSON from", toSend)
         case "healthCheck":
-            e = nil
+            *n = 1
+            return nil
+        default:
+            fmt.Println("Default")
 
     }
     *n = 1
@@ -436,7 +446,7 @@ func(lb *LoadBalancer) findLeaderOnElection() {
                 data.OpCode = "election"
                 data.LbId = lb.id
                 b, _:= json.Marshal(&data)
-                fmt.Println("Sending election message to everyone")
+                //fmt.Println("Sending election message to everyone")
                 for i:=0;i< lb.id && lb.primary==-1;i++ {
                    port, _ := strconv.Atoi(lb.portsLB[i])
                     e = lb.NewClient("127.0.0.1:" + strconv.Itoa(port - 2000), b)
@@ -493,6 +503,7 @@ func(lb *LoadBalancer) findLeaderOnElection() {
                             lb.primary = -1
                     }
             }
+            count = -1
 
             if lb.primary == -2 {
             		fmt.Println("lb.primary ==-2")
