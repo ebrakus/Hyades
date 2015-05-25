@@ -183,7 +183,7 @@ func (lb *LoadBalancer) UpdateLoadMatrix() {
 
 			b, _ := json.Marshal(data)
 			fmt.Println("Marshalled Data")
-			e := lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
+			_, e := lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
 			fmt.Println("Calling NewClient Partial Complete")
 			if e != nil {
 				fmt.Println("Error in calling RPC", e)
@@ -237,7 +237,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 		if data.LbId < self.primary && data.LbId >= 0 {
 			self.primary = -1
 		} else if self.primary >= 0 {
-			var reply_data jsonMessage
+			/*var reply_data jsonMessage
 			reply_data.OpCode = "realPrimary"
 			reply_data.LbId = self.id
 			reply_data.Load[0] = self.primary
@@ -247,7 +247,9 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 			e = self.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
 			if e != nil {
 				fmt.Println("Error in calling RPC", e)
-			}
+			}*/
+			*n = self.primary
+			return nil
 		}
 	case "realPrimary":
 		fmt.Println("Received ", data)
@@ -260,7 +262,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 				self.primary = primary
 			}
 		}
-		fmt.Println("Current Primary ", self.primary)
+		fmt.Println("Current Structure ", self)
 	case "updateFromPrimary":
 		/* Received data from Primary*/
 		e = json.Unmarshal(in, &toSend)
@@ -269,13 +271,13 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 		}
 		fmt.Println("Received JSON from", toSend)
 	case "healthCheck":
-		*n = 1
+		*n = -3
 		return nil
 	default:
 		fmt.Println("Default")
 
 	}
-	*n = 1
+	*n = -3
 	//fmt.Println(self.aliveLB, receivedFrom)
 	if self.id == self.primary && isEqual(receivedFrom, self.aliveLB) == true {
 		/* Received from all alive. Send back info */
@@ -299,7 +301,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 				continue
 			}
 			port, _ := strconv.Atoi(self.portsLB[i])
-			e = self.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
+			_, e = self.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
 			if e != nil {
 				//Looks like the node is dead
 				self.aliveLB[i] = false
@@ -311,24 +313,25 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 	return nil
 }
 
-func (self *LoadBalancer) NewClient(addr string, b []byte) error {
+func (self *LoadBalancer) NewClient(addr string, b []byte) (int, error) {
+	ret := -3
 	conn, e := rpc.DialHTTP("tcp", addr)
 	//conn, e := rpc.DialTimeout("tcp", addr, 100000000)
 	if e != nil {
-		return e
+		return ret, e
 	}
 
 	//fmt.Printf("connection established")
 	// perform the call
-	ret := 0
 	e = conn.Call("LoadBalancer.NewMessage", b, &ret)
 	if e != nil {
 		conn.Close()
-		return e
+		return ret, e
 	}
 
 	// close the connection
-	return conn.Close()
+	e = conn.Close()
+	return ret, e
 }
 
 func (self *LoadBalancer) ServeBack() error {
@@ -355,11 +358,11 @@ func main() {
 	id, _ := strconv.Atoi(os.Args[1])
 	numServers, _ := strconv.Atoi(os.Args[2])
 
-	lb.Init(id, numServers)
+	(&lb).Init(id, numServers)
 	fmt.Println("Id and numservers are", lb.id, lb.numServers)
 
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
-	go lb.UpdateLoadMatrix()
+	go (&lb).UpdateLoadMatrix()
 
 	reverseProxy := new(httputil.ReverseProxy)
 
@@ -473,11 +476,18 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 			//fmt.Println("Sending election message to everyone")
 			for i := 0; i < lb.id && lb.primary == -1; i++ {
 				port, _ := strconv.Atoi(lb.portsLB[i])
-				e = lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
+				n, e := lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
 				if e != nil {
 					continue
 				} else {
-					lb.primary = -2
+					if n != -3 {
+						/* No election needed. System is already stable */
+						fmt.Println("-----------", lb.primary)
+						lb.primary = n
+					} else {
+						/* Wait for the primary to gather majority */
+						lb.primary = -2
+					}
 					count++
 					break
 				}
@@ -496,7 +506,7 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 			nodesReachable := 0
 			for i := lb.id + 1; i < 10; i++ {
 				port, _ := strconv.Atoi(lb.portsLB[i])
-				e = lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
+				_, e = lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
 				if e != nil {
 					continue
 				} else {
@@ -519,7 +529,7 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 				//Send “coordinator” to all
 				for i := lb.id + 1; i < 10; i++ {
 					port, _ := strconv.Atoi(lb.portsLB[i])
-					e = lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
+					_, e = lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
 					//Check error
 				}
 			} else {
@@ -532,6 +542,7 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 		lock.Lock()
 		if lb.primary == -2 {
 			fmt.Println("lb.primary ==-2---", lb.primary)
+			fmt.Println("*******lb ", lb)
 			lock.Unlock()
 			time.Sleep(time.Second * 1)
 			lock.Lock()
