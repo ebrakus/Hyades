@@ -15,14 +15,17 @@ import (
     "net/rpc"
     "net"
     "math/rand"
+    "sync"
 )
 
 var receivedFrom []bool
+var lock sync.Mutex
+
 type LoadBalancer struct {
 	id int				/*Identification of load balancer*/
 	port string			/*Port it is listening on*/
 	numLB int			/*Number of other Load Balancers active*/
-        primary int                     /* Id of the current known primary */
+   	primary int                     /* Id of the current known primary */
 	portsLB []string
 	aliveLB[] bool
 	numServers int		/*Number of servers in each of the server sets*/
@@ -101,8 +104,9 @@ func(lb *LoadBalancer) Init(id int, numServers int){
             }
         }
 
-        runtime.GOMAXPROCS(runtime.NumCPU() + 2)
+        runtime.GOMAXPROCS(runtime.NumCPU() + 1)
         go lb.findLeaderOnElection()
+        runtime.GOMAXPROCS(runtime.NumCPU() + 1)
         go lb.ServeBack()
 }
 
@@ -149,19 +153,26 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 
 func(lb *LoadBalancer) UpdateLoadMatrix(){
     var data jsonMessage
+    defer fmt.Println("=========Exiting Update Thread")
 	for {
 		//lb.curLoad1[lb.id] = rand.Intn(10)
 		//lb.curLoad2[lb.id] = rand.Intn(10)
 		/*Have to Send*/
-		time.Sleep(time.Second)
+		fmt.Println("CAbout to sleep in UpdateLoadMatrix")
+		time.Sleep(1*time.Second)
 
+		lock.Lock()
+		fmt.Println("back from sleep")
                 //Call primary RPC
                 fmt.Printf("UpdateLoadMatrix %d, %s\n", lb.primary, lb.port)
                 if lb.primary >= 0{
                     fmt.Printf("UpdateLoadMatrix primary:  %s\n",lb.portsLB[lb.primary])
                 }
+
+                fmt.Println("Next.....")
                     
                 if lb.primary >= 0 && lb.port != lb.portsLB[lb.primary]{
+                	fmt.Println("Inside Loop.....")
                     port, _ := strconv.Atoi(lb.portsLB[lb.primary])
                     fmt.Println("Calling NewClient", port - 2000)
 
@@ -171,11 +182,16 @@ func(lb *LoadBalancer) UpdateLoadMatrix(){
                     data.Load[1] = lb.curLoad2[lb.id]
 
                     b, _ := json.Marshal(data)
+                    fmt.Println("Marshalled Data")
                     e := lb.NewClient("127.0.0.1:"+strconv.Itoa(port - 2000), b)
+                    fmt.Println("Calling NewClient Partial Complete")
                     if e != nil {
                         fmt.Println("Error in calling RPC", e)
                     }
                 }
+
+        fmt.Println("Calling NewClient Complete")
+        lock.Unlock()
 	}
 }
 
@@ -198,20 +214,21 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
     var data jsonMessage 
     var toSend jsonMessagePrimary
 
-    fmt.Println("Received a new message")
+    fmt.Println("======================Received a new message")
     e := json.Unmarshal(in, &data)
     if e!= nil{
-        fmt.Println("Unmarshalling error")
+        fmt.Println("==================Unmarshalling error")
         //return e
     }
 
     switch data.OpCode {
         case "loadUpdate":
-            fmt.Println("Received ", data)
+            fmt.Println("============================Received ", data)
             self.aliveLB[data.LbId] = true
             receivedFrom[data.LbId] = true
             self.curLoad1[data.LbId] = data.Load[0] 
             self.curLoad2[data.LbId] = data.Load[1] 
+            return nil
         case "coordinator":
             fmt.Println("Received ", data)
             self.primary = data.LbId
@@ -291,6 +308,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error{
 
 func (self *LoadBalancer) NewClient(addr string, b []byte) error {
     conn, e := rpc.DialHTTP("tcp", addr)
+    //conn, e := rpc.DialTimeout("tcp", addr, 100000000)
     if e != nil {
             return e
     }
@@ -439,6 +457,7 @@ func(lb *LoadBalancer) findLeaderOnElection() {
 	count:=0
 	fmt.Println("Starting to find Leader")
 	for {
+			lock.Lock()
             if lb.primary == -1 {
             	fmt.Println("lb.primary is -1")
                 //Start an election
@@ -479,7 +498,7 @@ func(lb *LoadBalancer) findLeaderOnElection() {
                                     nodesReachable++
                             }
 
-                            if nodesReachable>1{        //TODO: Update majority
+                            if nodesReachable>0{        //TODO: Update majority
                                     fmt.Println("GOT MAJORITY")
                                     majority=true
                                     break
@@ -513,6 +532,7 @@ func(lb *LoadBalancer) findLeaderOnElection() {
                                     lb.primary = -1
                     }
             }
+            lock.Unlock()
         }
 
 }
