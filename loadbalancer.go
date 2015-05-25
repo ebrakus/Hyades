@@ -213,9 +213,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 	var data jsonMessage
 	var toSend jsonMessagePrimary
 
-	//lock.Lock()
-	//defer lock.Unlock()
-
+	fmt.Printf("Address of self %p\n", self)
 	e := json.Unmarshal(in, &data)
 	if e != nil {
 		fmt.Println("==================Unmarshalling error")
@@ -236,7 +234,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 	case "election":
 		fmt.Printf("Current Primary %d-----", self.primary)
 		fmt.Println("Received ", data)
-		if data.LbId < self.primary {
+		if data.LbId < self.primary && data.LbId >= 0 {
 			self.primary = -1
 		} else if self.primary >= 0 {
 			var reply_data jsonMessage
@@ -245,7 +243,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 			reply_data.Load[0] = self.primary
 			//Send "realPrimary" back
 			b, _ := json.Marshal(&reply_data)
-			port, _ := strconv.Atoi(self.portsLB[self.primary])
+			port, _ := strconv.Atoi(self.portsLB[data.LbId])
 			e = self.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
 			if e != nil {
 				fmt.Println("Error in calling RPC", e)
@@ -254,9 +252,15 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 	case "realPrimary":
 		fmt.Println("Received ", data)
 		primary := data.Load[0]
-		if primary < self.primary {
-			self.primary = primary
+
+		if primary >= 0 {
+			if self.primary < 0 {
+				self.primary = primary
+			} else if primary < self.primary {
+				self.primary = primary
+			}
 		}
+		fmt.Println("Current Primary ", self.primary)
 	case "updateFromPrimary":
 		/* Received data from Primary*/
 		e = json.Unmarshal(in, &toSend)
@@ -347,6 +351,7 @@ func main() {
 
 	var lb LoadBalancer
 
+	fmt.Printf("Address in main %p\n", &lb)
 	id, _ := strconv.Atoi(os.Args[1])
 	numServers, _ := strconv.Atoi(os.Args[2])
 
@@ -454,11 +459,12 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 	var e error
 	count := 0
 	fmt.Println("Starting to find Leader")
+	fmt.Printf("Address %p\n", lb)
 	for {
 		lock.Lock()
 		count = -1
 		if lb.primary == -1 {
-			fmt.Println("lb.primary is -1")
+			//fmt.Println("lb.primary is -1")
 			//Start an election
 			count = 0
 			data.OpCode = "election"
@@ -479,14 +485,14 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 		}
 
 		if count == 0 {
-			fmt.Println("I am primary")
+			//fmt.Println("I am primary")
 			// I am primary candidate
 			//Send health check on other nodes
 			data.OpCode = "healthCheck"
 			data.LbId = lb.id
 			b, _ := json.Marshal(&data)
 			majority := false
-			fmt.Println("Sending healthCheck message to everyone")
+			//fmt.Println("Sending healthCheck message to everyone")
 			nodesReachable := 0
 			for i := lb.id + 1; i < 10; i++ {
 				port, _ := strconv.Atoi(lb.portsLB[i])
@@ -525,12 +531,12 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 
 		lock.Lock()
 		if lb.primary == -2 {
-			fmt.Println("lb.primary ==-2")
+			fmt.Println("lb.primary ==-2---", lb.primary)
 			lock.Unlock()
 			time.Sleep(time.Second * 1)
 			lock.Lock()
 			if lb.primary == -2 {
-				fmt.Println("lb.primary is still -2")
+				fmt.Println("lb.primary is still -2---", lb.primary)
 
 				lb.primary = -1
 
