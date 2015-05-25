@@ -213,7 +213,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 	var data jsonMessage
 	var toSend jsonMessagePrimary
 
-	fmt.Printf("Address of self %p\n", self)
+	//fmt.Printf("***************Address of self %p\n", &(self.primary))
 	e := json.Unmarshal(in, &data)
 	if e != nil {
 		fmt.Println("==================Unmarshalling error")
@@ -459,9 +459,9 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 	var e error
 	count := 0
 	fmt.Println("Starting to find Leader")
-	fmt.Printf("Address %p\n", lb)
 	for {
 		lock.Lock()
+		//fmt.Printf("$$$$$$$$$$$$$$$Address %p\n", &(lb.primary))
 		count = -1
 		if lb.primary == -1 {
 			//fmt.Println("lb.primary is -1")
