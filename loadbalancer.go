@@ -458,6 +458,7 @@ func(lb *LoadBalancer) findLeaderOnElection() {
 	fmt.Println("Starting to find Leader")
 	for {
 			lock.Lock()
+			count = -1
             if lb.primary == -1 {
             	fmt.Println("lb.primary is -1")
                 //Start an election
@@ -522,17 +523,27 @@ func(lb *LoadBalancer) findLeaderOnElection() {
                             lb.primary = -1
                     }
             }
-            count = -1
+            
+            lock.Unlock()
 
+            lock.Lock()
             if lb.primary == -2 {
             		fmt.Println("lb.primary ==-2")
+            		lock.Unlock()
                     time.Sleep(time.Second * 1)
+                    lock.Lock()
                     if lb.primary == -2{
                     		fmt.Println("lb.primary is still -2")
-                                    lb.primary = -1
+                    		
+                            lb.primary = -1
+                        
                     }
             }
             lock.Unlock()
+
+
+
+            
         }
 
 }
