@@ -213,8 +213,8 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 	var data jsonMessage
 	var toSend jsonMessagePrimary
 
-	lock.Lock()
-	defer lock.Unlock()
+	//lock.Lock()
+	//defer lock.Unlock()
 
 	e := json.Unmarshal(in, &data)
 	if e != nil {
@@ -272,7 +272,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 	}
 	*n = 1
-	fmt.Println(self.aliveLB, receivedFrom)
+	//fmt.Println(self.aliveLB, receivedFrom)
 	if self.id == self.primary && isEqual(receivedFrom, self.aliveLB) == true {
 		/* Received from all alive. Send back info */
 		fmt.Println("Sending data to all other nodes")
@@ -359,6 +359,7 @@ func main() {
 	reverseProxy := new(httputil.ReverseProxy)
 
 	reverseProxy.Director = func(req *http.Request) {
+		lock.Lock()
 		fmt.Println("Received Request")
 		req.URL.Scheme = "http"
 
@@ -405,6 +406,7 @@ func main() {
 		var target *url.URL
 		target, _ = url.Parse("http://127.0.0.1:" + portS + suffix)
 		req.URL.Host = target.Host
+		lock.Unlock()
 
 	}
 
