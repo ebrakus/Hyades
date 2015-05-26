@@ -20,6 +20,7 @@ import (
 
 var receivedFrom []bool
 var lock sync.Mutex
+var timeOut time.Time
 
 type LoadBalancer struct {
 	id         int    /*Identification of load balancer*/
@@ -154,9 +155,9 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 func (lb *LoadBalancer) UpdateLoadMatrix() {
 	var data jsonMessage
 	//defer fmt.Println("=========Exiting Update Thread")
-	temp:=0
+	temp := 0
 	for {
-		if temp%5==0{
+		if temp%5 == 0 {
 			fmt.Println("UpdateLoadMatrix running")
 		}
 		temp++
@@ -174,7 +175,7 @@ func (lb *LoadBalancer) UpdateLoadMatrix() {
 			fmt.Printf("UpdateLoadMatrix primary:  %s\n", lb.portsLB[lb.primary])
 		}*/
 
-		if lb.primary >= 0 && lb.primary!=lb.id && lb.port != lb.portsLB[lb.primary] {
+		if lb.primary >= 0 && lb.primary != lb.id && lb.port != lb.portsLB[lb.primary] {
 			port, _ := strconv.Atoi(lb.portsLB[lb.primary])
 			//fmt.Println("Calling NewClient", port-2000)
 
@@ -212,6 +213,7 @@ func isEqual(a, b []bool) bool {
 func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 	var data jsonMessage
 	var toSend jsonMessagePrimary
+	flag := 0
 
 	e := json.Unmarshal(in, &data)
 	if e != nil {
@@ -226,6 +228,7 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		receivedFrom[data.LbId] = true
 		lb.curLoad1[data.LbId] = data.Load[0]
 		lb.curLoad2[data.LbId] = data.Load[1]
+		//timeOut = time.Now()
 	case "coordinator":
 		fmt.Println("Received ", data)
 		lb.primary = data.LbId
@@ -325,7 +328,11 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 	}
 	*n = -3
 	//fmt.Println(lb.aliveLB, receivedFrom)
-	if lb.id == lb.primary && isEqual(receivedFrom, lb.aliveLB) == true {
+	diff := time.Now().Sub(timeOut)
+	if diff.Seconds() > 5 { //TODO: Find a timeout
+		flag = 1
+	}
+	if lb.id == lb.primary && isEqual(receivedFrom, lb.aliveLB) == true || flag == 1 {
 		/* Received from all alive. Send back info */
 		//fmt.Println("Sending data to all other nodes")
 
@@ -387,7 +394,7 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			}
 			receivedFrom[i] = false
 		}
-
+		timeOut = time.Now()
 	}
 
 	return nil
@@ -548,11 +555,11 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 	var data jsonMessage
 	var e error
 	count := 0
-	temp:=0
+	temp := 0
 	fmt.Println("Starting to find Leader")
 	for {
 		time.Sleep(time.Second)
-		if temp%5==0{
+		if temp%5 == 0 {
 			fmt.Println("findLeaderOnElection running")
 		}
 		temp++
