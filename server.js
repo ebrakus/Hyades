@@ -4,11 +4,9 @@ var args = process.argv.slice(2);
 var numLB= args[0]
 var numServers= args[1]
 
-for(var j = 0; j < numLB; j++){
-    for(var i = 0; i < numServers; i++) {
-        ports.push(9000+ j + i*10)
-        ports.push(9100+ j + i*10)
-    }
+for(var i = 0; i < numServers/2; i++){
+        ports.push(9000+ i)
+        ports.push(9100+ i)
 }
 
 console.log("Number of port" + ports)

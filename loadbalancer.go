@@ -29,11 +29,11 @@ type LoadBalancer struct {
 	portsLB    []string
 	aliveLB    []bool
 	numServers int      /*Number of servers in each of the server sets*/
-	servers1   []string /*Server set 2's IP's*/
+	totServers int 		/*Total number of servers that exist*/
+	servers1   []string /*Server set 1's IP's*/
 	servers2   []string /*Server set 2's IP's*/
 	load1      []int    /*Load of self server set 1*/
 	load2      []int    /*Load of self server set 2*/
-
 	curLoad1 []int /*Load1 of server set of other load balancers*/
 	curLoad2 []int /*Load2 of server set of other load balancers*/
 }
@@ -53,28 +53,28 @@ type jsonMessagePrimary struct {
 	CurLoad2 [10]int
 }
 
-func (lb *LoadBalancer) Init(id int, numServers int) {
+func (lb *LoadBalancer) Init(id int, totServers int) {
 
 	lb.id = id
-	lb.numServers = numServers
+	lb.totServers = totServers
 
-	fmt.Println("Id and numservers are", lb.id, lb.numServers)
+	fmt.Println("Id and totServers are", lb.id, lb.totServers)
 
+	/*
 	lb.servers1 = make([]string, 0)
 	lb.servers2 = make([]string, 0)
 
 	lb.load1 = make([]int, lb.numServers)
 	lb.load2 = make([]int, lb.numServers)
 
-	lb.port = strconv.Itoa(8000 + lb.id)
-
 	for i := 0; i < lb.numServers; i++ {
 		lb.servers1 = append(lb.servers1, strconv.Itoa(9000+10*lb.id+i))
 		lb.load1[i] = 0
 		lb.servers2 = append(lb.servers2, strconv.Itoa(9100+10*lb.id+i))
 		lb.load2[i] = 0
-	}
+	}*/
 
+	lb.port = strconv.Itoa(8000 + lb.id)
 	lb.portsLB = make([]string, 10)
 	lb.aliveLB = make([]bool, 10)
 	receivedFrom = make([]bool, 10)
@@ -204,7 +204,7 @@ func isEqual(a, b []bool) bool {
 	return true
 }
 
-func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
+func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 	var data jsonMessage
 	var toSend jsonMessagePrimary
 
@@ -217,32 +217,32 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 	switch data.OpCode {
 	case "loadUpdate":
 		//fmt.Println("============================Received ", data)
-		self.aliveLB[data.LbId] = true
+		lb.aliveLB[data.LbId] = true
 		receivedFrom[data.LbId] = true
-		self.curLoad1[data.LbId] = data.Load[0]
-		self.curLoad2[data.LbId] = data.Load[1]
+		lb.curLoad1[data.LbId] = data.Load[0]
+		lb.curLoad2[data.LbId] = data.Load[1]
 	case "coordinator":
 		fmt.Println("Received ", data)
-		self.primary = data.LbId
-		fmt.Println("CURRENT KNOWN PRIMARY", self.primary)
+		lb.primary = data.LbId
+		fmt.Println("CURRENT KNOWN PRIMARY", lb.primary)
 	case "election":
-		fmt.Printf("Current Primary %d-----", self.primary)
+		fmt.Printf("Current Primary %d-----", lb.primary)
 		fmt.Println("Received ", data)
-		if data.LbId < self.primary && data.LbId >= 0 {
-			self.primary = -1
-		} else if self.primary >= 0 {
+		if data.LbId < lb.primary && data.LbId >= 0 {
+			lb.primary = -1
+		} else if lb.primary >= 0 {
 			/*var reply_data jsonMessage
 			reply_data.OpCode = "realPrimary"
-			reply_data.LbId = self.id
-			reply_data.Load[0] = self.primary
+			reply_data.LbId = lb.id
+			reply_data.Load[0] = lb.primary
 			//Send "realPrimary" back
 			b, _ := json.Marshal(&reply_data)
-			port, _ := strconv.Atoi(self.portsLB[data.LbId])
-			e = self.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
+			port, _ := strconv.Atoi(lb.portsLB[data.LbId])
+			e = lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
 			if e != nil {
 				fmt.Println("Error in calling RPC", e)
 			}*/
-			*n = self.primary
+			*n = lb.primary
 			return nil
 		}
 	/*case "realPrimary":
@@ -250,13 +250,13 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 	primary := data.Load[0]
 
 	if primary >= 0 {
-		if self.primary < 0 {
-			self.primary = primary
-		} else if primary < self.primary {
-			self.primary = primary
+		if lb.primary < 0 {
+			lb.primary = primary
+		} else if primary < lb.primary {
+			lb.primary = primary
 		}
 	}
-	fmt.Println("Current Structure ", self)
+	fmt.Println("Current Structure ", lb)
 	*/
 	case "updateFromPrimary":
 		/* Received data from Primary*/
@@ -264,19 +264,53 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 		if e != nil {
 			return e
 		}
-		for i := self.primary; i < 10; i++ {
+
+		lbActive:=0
+		myPos:=0 //my active postion ; i.e if 1,2,5,10 are active then I(5) am third
+		for i:=0;i<10;i++{
+			if i==lb.id{
+				myPos=i
+			}
+			if toSend.CurLoad1[i] !=-1 {
+				lbActive++
+			}
+		}
+
+		lb.numServers = (lb.totServers/2)/lbActive //numServers in each serverset
+		/*if (lb.totServers/2)%lbActive!=0 && (lb.totServers/2)%lbActive>myPos{
+			lb.numServers++
+		}*/
+
+		fmt.Println("Total servers, lbActive and lb.numServers",lb.totServers,lbActive,lb.numServers)
+		lb.servers1 = make([]string, lb.numServers)
+		lb.servers2 = make([]string, lb.numServers)
+
+		lb.load1 = make([]int, lb.numServers)
+		lb.load2 = make([]int, lb.numServers)
+
+		for i := 0; i < lb.numServers; i++ {
+			lb.servers1[i]=strconv.Itoa(9000+myPos*lb.numServers+i)
+			lb.load1[i] = 0
+			lb.servers2[i]=strconv.Itoa(9100+myPos*lb.numServers+i)
+			lb.load2[i] = 0
+		}
+
+		fmt.Println("I am going to manage servers in SS1:",lb.servers1)
+		fmt.Println("I am going to manage servers in SS2:",lb.servers2)
+
+		for i := lb.primary; i < 10; i++ {
 			if toSend.CurLoad1[i] == -1 {
-				self.aliveLB[i] = false
-				self.curLoad1[i] = -1
-				self.curLoad2[i] = -1
+				lb.aliveLB[i] = false
+				lb.curLoad1[i] = -1
+				lb.curLoad2[i] = -1
 			} else {
-				self.aliveLB[i] = true
-				self.curLoad1[i] = toSend.CurLoad1[i]
-				self.curLoad2[i] = toSend.CurLoad2[i]
+				lb.aliveLB[i] = true
+				lb.curLoad1[i] = toSend.CurLoad1[i]
+				lb.curLoad2[i] = toSend.CurLoad2[i]
 			}
 		}
 		fmt.Println("Received JSON from", toSend)
-		fmt.Println("ALIVE matrix", self.aliveLB)
+		fmt.Println("ALIVE matrix", lb.aliveLB)
 	case "healthCheck":
 		*n = -3
 		return nil
@@ -285,18 +319,54 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 	}
 	*n = -3
-	//fmt.Println(self.aliveLB, receivedFrom)
-	if self.id == self.primary && isEqual(receivedFrom, self.aliveLB) == true {
+	//fmt.Println(lb.aliveLB, receivedFrom)
+	if lb.id == lb.primary && isEqual(receivedFrom, lb.aliveLB) == true {
 		/* Received from all alive. Send back info */
 		//fmt.Println("Sending data to all other nodes")
 		toSend.OpCode = "updateFromPrimary"
-		toSend.LbId = self.id
+		toSend.LbId = lb.id
 		for i := 0; i < 10; i++ {
-			toSend.CurLoad1[i] = self.curLoad1[i]
-			toSend.CurLoad2[i] = self.curLoad2[i]
+			toSend.CurLoad1[i] = lb.curLoad1[i]
+			toSend.CurLoad2[i] = lb.curLoad2[i]
 		}
-		//toSend.CurLoad1_other[self.id] = self.curLoad1
-		//toSend.CurLoad2_other[self.id] = self.curLoad2
+		//toSend.CurLoad1_other[lb.id] = lb.curLoad1
+		//toSend.CurLoad2_other[lb.id] = lb.curLoad2
+
+
+		lbActive:=0
+		myPos:=0 //my active postion ; i.e if 1,2,5,10 are active then I(5) am third
+		for i:=0;i<10;i++{
+			if i==lb.id{
+				myPos=i
+			}
+			if toSend.CurLoad1[i] !=-1 {
+				lbActive++
+			}
+		}
+
+		lb.numServers = (lb.totServers/2)/lbActive //numServers in each serverset
+		/*if (lb.totServers/2)%lbActive!=0 && (lb.totServers/2)%lbActive>myPos{
+			lb.numServers++
+		}*/
+
+		fmt.Println("Total servers, lbActive and lb.numServers",lb.totServers,lbActive,lb.numServers)
+		lb.servers1 = make([]string, lb.numServers)
+		lb.servers2 = make([]string, lb.numServers)
+
+		lb.load1 = make([]int, lb.numServers)
+		lb.load2 = make([]int, lb.numServers)
+
+		for i := 0; i < lb.numServers; i++ {
+			lb.servers1[i]=strconv.Itoa(9000+myPos*lb.numServers+i)
+			lb.load1[i] = 0
+			lb.servers2[i]=strconv.Itoa(9100+myPos*lb.numServers+i)
+			lb.load2[i] = 0
+		}
+
+		fmt.Println("I am going to manage servers in SS1:",lb.servers1)
+		fmt.Println("I am going to manage servers in SS2:",lb.servers2)
+
+
 
 		b, e := json.Marshal(toSend)
 		if e != nil {
@@ -304,17 +374,18 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 		}
 
 		for i := 0; i < 10; i++ {
-			if self.aliveLB[i] == false || i == self.id {
+			if lb.aliveLB[i] == false || i == lb.id {
 				continue
 			}
-			port, _ := strconv.Atoi(self.portsLB[i])
-			_, e = self.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
+			port, _ := strconv.Atoi(lb.portsLB[i])
+			_, e = lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
 			if e != nil {
 				//Looks like the node is dead
-				self.aliveLB[i] = false
+				lb.aliveLB[i] = false
 			}
 			receivedFrom[i] = false
 		}
+
 	}
 
 	return nil
@@ -363,10 +434,10 @@ func main() {
 
 	fmt.Printf("Address in main %p\n", &lb)
 	id, _ := strconv.Atoi(os.Args[1])
-	numServers, _ := strconv.Atoi(os.Args[2])
+	totServers, _ := strconv.Atoi(os.Args[2])
 
-	(&lb).Init(id, numServers)
-	fmt.Println("Id and numservers are", lb.id, lb.numServers)
+	(&lb).Init(id, totServers)
+	fmt.Println("Id and totServers are", lb.id, lb.totServers)
 
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
 	go (&lb).UpdateLoadMatrix()
@@ -392,7 +463,10 @@ func main() {
 			} else {
 				fmt.Println("Calling Load Matix for lb.load1")
 				sendToServer := lb.whereToSend(&lb.load1, lb.numServers)
-				port = 9000 + 10*lb.id + sendToServer
+				//port = 9000 + 10*lb.id + sendToServer
+				port,_= strconv.Atoi(lb.servers1[sendToServer])
+				fmt.Println("Server Set 1 is :",lb.servers1)
+				fmt.Println("Port in ascii is :",lb.servers1[sendToServer])
 				lb.load1[sendToServer]++
 				lb.curLoad1[lb.id]++
 			}
@@ -410,7 +484,8 @@ func main() {
 			} else {
 				fmt.Println("Calling Load Matix for lb.load2")
 				sendToServer := lb.whereToSend(&lb.load2, lb.numServers)
-				port = 9100 + 10*lb.id + sendToServer
+				port,_= strconv.Atoi(lb.servers2[sendToServer])
+				fmt.Println("Port in ascii is :",lb.servers2[sendToServer])
 				lb.load2[sendToServer]++
 				lb.curLoad2[lb.id]++
 			}
