@@ -188,6 +188,7 @@ func (lb *LoadBalancer) UpdateLoadMatrix() {
 			_, e := lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
 			if e != nil {
 				fmt.Println("Error in calling RPC", e)
+				lb.primary = -1
 			}
 		}
 
