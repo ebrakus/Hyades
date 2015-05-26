@@ -285,23 +285,32 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			}
 		}
 
+		oldNumServers:=lb.numServers
 		lb.numServers = (lb.totServers / 2) / lbActive //numServers in each serverset
 		/*if (lb.totServers/2)%lbActive!=0 && (lb.totServers/2)%lbActive>myPos{
 			lb.numServers++
 		}*/
 
-		//fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
-		lb.servers1 = make([]string, lb.numServers)
-		lb.servers2 = make([]string, lb.numServers)
+		fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
 
-		lb.load1 = make([]int, lb.numServers)
-		lb.load2 = make([]int, lb.numServers)
+		flag:=false
+		fmt.Println("Old and new are:",lb.numServers,oldNumServers)
+		if lb.numServers != oldNumServers{
+			flag=true
+			lb.servers1 = make([]string, lb.numServers)
+			lb.servers2 = make([]string, lb.numServers)
+
+			lb.load1 = make([]int, lb.numServers)
+			lb.load2 = make([]int, lb.numServers)
+		}
 
 		for i := 0; i < lb.numServers; i++ {
 			lb.servers1[i] = strconv.Itoa(9000 + myPos*lb.numServers + i)
-			lb.load1[i] = 0
 			lb.servers2[i] = strconv.Itoa(9100 + myPos*lb.numServers + i)
-			lb.load2[i] = 0
+			if flag==true{
+				lb.load1[i] = 0
+				lb.load2[i] = 0
+			}
 		}
 
 		//fmt.Println("I am going to manage servers in SS1:", lb.servers1)
@@ -319,8 +328,10 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			}
 		}
 		fmt.Println()
-		fmt.Println("Load on ServerSet1", toSend.CurLoad1)
-		fmt.Println("Load on ServerSet2", toSend.CurLoad2)
+		fmt.Println("Load on different Loadbalancers' ServerSet1", toSend.CurLoad1)
+		fmt.Println("Load on different Loadbalancers' ServerSet2", toSend.CurLoad2)
+		fmt.Println("Load on this Loadbalancers' ServerSet1:",lb.load1)
+		fmt.Println("Load on this Loadbalancers' ServerSet2:",lb.load2)
 		fmt.Println()
 		//fmt.Println("ALIVE matrix", lb.aliveLB)
 	case "healthCheck":
