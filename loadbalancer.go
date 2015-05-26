@@ -170,7 +170,7 @@ func (lb *LoadBalancer) UpdateLoadMatrix() {
 			fmt.Printf("UpdateLoadMatrix primary:  %s\n", lb.portsLB[lb.primary])
 		}*/
 
-		if lb.primary >= 0 && lb.port != lb.portsLB[lb.primary] {
+		if lb.primary >= 0 && lb.primary!=lb.id && lb.port != lb.portsLB[lb.primary] {
 			port, _ := strconv.Atoi(lb.portsLB[lb.primary])
 			//fmt.Println("Calling NewClient", port-2000)
 
