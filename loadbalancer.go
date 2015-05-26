@@ -332,7 +332,7 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 	if diff.Seconds() > 5 { //TODO: Find a timeout
 		flag = 1
 	}
-	if lb.id == lb.primary && isEqual(receivedFrom, lb.aliveLB) == true || flag == 1 {
+	if lb.id == lb.primary && (isEqual(receivedFrom, lb.aliveLB) == true || flag == 1) {
 		/* Received from all alive. Send back info */
 		//fmt.Println("Sending data to all other nodes")
 
