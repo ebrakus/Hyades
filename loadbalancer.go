@@ -156,7 +156,7 @@ func (lb *LoadBalancer) UpdateLoadMatrix() {
 	//defer fmt.Println("=========Exiting Update Thread")
 	temp:=0
 	for {
-		if temp%1000==0{
+		if temp%5==0{
 			fmt.Println("UpdateLoadMatrix running")
 		}
 		temp++
@@ -551,7 +551,8 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 	temp:=0
 	fmt.Println("Starting to find Leader")
 	for {
-		if temp%1000==0{
+		time.Sleep(time.Second)
+		if temp%5==0{
 			fmt.Println("findLeaderOnElection running")
 		}
 		temp++
