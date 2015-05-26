@@ -267,8 +267,12 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 		for i := self.primary; i < 10; i++ {
 			if toSend.CurLoad1[i] == -1 {
 				self.aliveLB[i] = false
+				self.curLoad1[i] = -1
+				self.curLoad2[i] = -1
 			} else {
 				self.aliveLB[i] = true
+				self.curLoad1[i] = toSend.CurLoad1[i]
+				self.curLoad2[i] = toSend.CurLoad2[i]
 			}
 		}
 		fmt.Println("Received JSON from", toSend)
