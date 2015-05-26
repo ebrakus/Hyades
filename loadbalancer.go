@@ -324,54 +324,45 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		/* Received from all alive. Send back info */
 		//fmt.Println("Sending data to all other nodes")
 
-		/*
-			toSend.OpCode = "updateFromPrimary"
-			toSend.LbId = lb.id
-			for i := 0; i < 10; i++ {
-				toSend.CurLoad1[i] = lb.curLoad1[i]
-				toSend.CurLoad2[i] = lb.curLoad2[i]
-			}
-			//toSend.CurLoad1_other[lb.id] = lb.curLoad1
-			//toSend.CurLoad2_other[lb.id] = lb.curLoad2
-
-
-			lbActive:=0
-			myPos:=0 //my active postion ; i.e if 1,2,5,10 are active then I(5) am third
-			for i:=0;i<10;i++{
-				if i==lb.id{
-					myPos=i
-				}
-				if toSend.CurLoad1[i] !=-1 {
-					lbActive++
-				}
-			}
-
-			lb.numServers = (lb.totServers/2)/lbActive //numServers in each serverset
-
-			fmt.Println("Total servers, lbActive and lb.numServers",lb.totServers,lbActive,lb.numServers)
-			lb.servers1 = make([]string, lb.numServers)
-			lb.servers2 = make([]string, lb.numServers)
-
-			lb.load1 = make([]int, lb.numServers)
-			lb.load2 = make([]int, lb.numServers)
-
-			for i := 0; i < lb.numServers; i++ {
-				lb.servers1[i]=strconv.Itoa(9000+myPos*lb.numServers+i)
-				lb.load1[i] = 0
-				lb.servers2[i]=strconv.Itoa(9100+myPos*lb.numServers+i)
-				lb.load2[i] = 0
-			}
-
-			fmt.Println("I am going to manage servers in SS1:",lb.servers1)
-			fmt.Println("I am going to manage servers in SS2:",lb.servers2)
-		*/
-
 		toSend.OpCode = "updateFromPrimary"
 		toSend.LbId = lb.id
 		for i := 0; i < 10; i++ {
 			toSend.CurLoad1[i] = lb.curLoad1[i]
 			toSend.CurLoad2[i] = lb.curLoad2[i]
 		}
+		//toSend.CurLoad1_other[lb.id] = lb.curLoad1
+		//toSend.CurLoad2_other[lb.id] = lb.curLoad2
+
+		lbActive := 0
+		myPos := 0 //my active postion ; i.e if 1,2,5,10 are active then I(5) am third
+		for i := 0; i < 10; i++ {
+			if i == lb.id {
+				myPos = i
+			}
+			if toSend.CurLoad1[i] != -1 {
+				lbActive++
+			}
+		}
+
+		lb.numServers = (lb.totServers / 2) / lbActive //numServers in each serverset
+
+		fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
+		lb.servers1 = make([]string, lb.numServers)
+		lb.servers2 = make([]string, lb.numServers)
+
+		lb.load1 = make([]int, lb.numServers)
+		lb.load2 = make([]int, lb.numServers)
+
+		for i := 0; i < lb.numServers; i++ {
+			lb.servers1[i] = strconv.Itoa(9000 + myPos*lb.numServers + i)
+			lb.load1[i] = 0
+			lb.servers2[i] = strconv.Itoa(9100 + myPos*lb.numServers + i)
+			lb.load2[i] = 0
+		}
+
+		fmt.Println("I am going to manage servers in SS1:", lb.servers1)
+		fmt.Println("I am going to manage servers in SS2:", lb.servers2)
+
 		b, e := json.Marshal(toSend)
 		if e != nil {
 			//return e
