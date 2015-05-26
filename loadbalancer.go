@@ -158,7 +158,7 @@ func (lb *LoadBalancer) UpdateLoadMatrix() {
 	temp := 0
 	for {
 		if temp%5 == 0 {
-			fmt.Println("UpdateLoadMatrix running")
+			//fmt.Println("UpdateLoadMatrix running")
 		}
 		temp++
 		//lb.curLoad1[lb.id] = rand.Intn(10)
@@ -231,12 +231,12 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		lb.curLoad2[data.LbId] = data.Load[1]
 		//timeOut = time.Now()
 	case "coordinator":
-		fmt.Println("Received ", data)
+		//fmt.Println("Received ", data)
 		lb.primary = data.LbId
-		fmt.Println("CURRENT KNOWN PRIMARY", lb.primary)
+		//fmt.Println("CURRENT KNOWN PRIMARY", lb.primary)
 	case "election":
-		fmt.Printf("Current Primary %d-----", lb.primary)
-		fmt.Println("Received ", data)
+		//fmt.Printf("Current Primary %d-----", lb.primary)
+		//fmt.Println("Received ", data)
 		if data.LbId < lb.primary && data.LbId >= 0 {
 			lb.primary = -1
 		} else if lb.primary >= 0 {
@@ -290,7 +290,7 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			lb.numServers++
 		}*/
 
-		fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
+		//fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
 		lb.servers1 = make([]string, lb.numServers)
 		lb.servers2 = make([]string, lb.numServers)
 
@@ -304,8 +304,8 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			lb.load2[i] = 0
 		}
 
-		fmt.Println("I am going to manage servers in SS1:", lb.servers1)
-		fmt.Println("I am going to manage servers in SS2:", lb.servers2)
+		//fmt.Println("I am going to manage servers in SS1:", lb.servers1)
+		//fmt.Println("I am going to manage servers in SS2:", lb.servers2)
 
 		for i := lb.primary; i < 10; i++ {
 			if toSend.CurLoad1[i] == -1 {
@@ -318,8 +318,11 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 				lb.curLoad2[i] = toSend.CurLoad2[i]
 			}
 		}
-		fmt.Println("Received JSON from", toSend)
-		fmt.Println("ALIVE matrix", lb.aliveLB)
+		fmt.Println()
+		fmt.Println("Load on ServerSet1", toSend.CurLoad1)
+		fmt.Println("Load on ServerSet2", toSend.CurLoad2)
+		fmt.Println()
+		//fmt.Println("ALIVE matrix", lb.aliveLB)
 	case "healthCheck":
 		*n = -3
 		return nil
@@ -359,7 +362,7 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 		lb.numServers = (lb.totServers / 2) / lbActive //numServers in each serverset
 
-		fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
+		//fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
 		lb.servers1 = make([]string, lb.numServers)
 		lb.servers2 = make([]string, lb.numServers)
 
@@ -373,8 +376,8 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			lb.load2[i] = 0
 		}
 
-		fmt.Println("I am going to manage servers in SS1:", lb.servers1)
-		fmt.Println("I am going to manage servers in SS2:", lb.servers2)
+		//fmt.Println("I am going to manage servers in SS1:", lb.servers1)
+		//fmt.Println("I am going to manage servers in SS2:", lb.servers2)
 
 		b, e := json.Marshal(toSend)
 		if e != nil {
@@ -442,7 +445,7 @@ func main() {
 
 	var lb LoadBalancer
 
-	fmt.Printf("Address in main %p\n", &lb)
+	//fmt.Printf("Address in main %p\n", &lb)
 	id, _ := strconv.Atoi(os.Args[1])
 	totServers, _ := strconv.Atoi(os.Args[2])
 
@@ -456,7 +459,7 @@ func main() {
 
 	reverseProxy.Director = func(req *http.Request) {
 		lock.Lock()
-		fmt.Println("Received Request")
+		//fmt.Println("Received Request")
 		req.URL.Scheme = "http"
 
 		var port int
@@ -466,17 +469,17 @@ func main() {
 			sendToLB := lb.whereToSend(&lb.curLoad1, 10)
 
 			if lb.id != sendToLB { /*To others*/
-				fmt.Println("Calling Load Matix for curLoad1")
+				//fmt.Println("Calling Load Matix for curLoad1")
 				port = 8000 + sendToLB
 				suffix = "/server1/"
 				lb.curLoad1[sendToLB]++
 			} else {
-				fmt.Println("Calling Load Matix for lb.load1")
+				//fmt.Println("Calling Load Matix for lb.load1")
 				sendToServer := lb.whereToSend(&lb.load1, lb.numServers)
 				//port = 9000 + 10*lb.id + sendToServer
 				port, _ = strconv.Atoi(lb.servers1[sendToServer])
-				fmt.Println("Server Set 1 is :", lb.servers1)
-				fmt.Println("Port in ascii is :", lb.servers1[sendToServer])
+				//fmt.Println("Server Set 1 is :", lb.servers1)
+				//fmt.Println("Port in ascii is :", lb.servers1[sendToServer])
 				lb.load1[sendToServer]++
 				lb.curLoad1[lb.id]++
 			}
@@ -487,22 +490,22 @@ func main() {
 			sendToLB := lb.whereToSend(&lb.curLoad2, 10)
 
 			if lb.id != sendToLB { /*To others*/
-				fmt.Println("Calling Load Matix for curLoad2")
+				//fmt.Println("Calling Load Matix for curLoad2")
 				port = 8000 + sendToLB
 				suffix = "/server2/"
 				lb.curLoad2[sendToLB]++
 			} else {
-				fmt.Println("Calling Load Matix for lb.load2")
+				//fmt.Println("Calling Load Matix for lb.load2")
 				sendToServer := lb.whereToSend(&lb.load2, lb.numServers)
 				port, _ = strconv.Atoi(lb.servers2[sendToServer])
-				fmt.Println("Port in ascii is :", lb.servers2[sendToServer])
+				//fmt.Println("Port in ascii is :", lb.servers2[sendToServer])
 				lb.load2[sendToServer]++
 				lb.curLoad2[lb.id]++
 			}
 		}
 
 		portS := strconv.Itoa(port)
-		fmt.Println("Ports was:" + portS)
+		//fmt.Println("Ports was:" + portS)
 		var target *url.URL
 		target, _ = url.Parse("http://127.0.0.1:" + portS + suffix)
 		req.URL.Host = target.Host
@@ -519,7 +522,7 @@ func main() {
 func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 	sum := 0
 	count := 0
-	fmt.Println("Load Matrix is :", (*val))
+	//fmt.Println("Load Matrix is :", (*val))
 	for i := 0; i < n; i++ {
 		if (*val)[i] != -1 {
 			sum += (*val)[i]
@@ -536,7 +539,7 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 	}
 
 	r := rand.Intn(sum2)
-	fmt.Println("Random value is :", r)
+	//fmt.Println("Random value is :", r)
 	temp := 0
 	var i int
 	for i = 0; i < n; i++ {
@@ -548,7 +551,7 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 			break
 		}
 	}
-	fmt.Println("Choosen id is :", i)
+	//fmt.Println("Choosen id is :", i)
 	return i
 }
 
@@ -561,7 +564,7 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 	for {
 		time.Sleep(time.Second)
 		if temp%5 == 0 {
-			fmt.Println("findLeaderOnElection running")
+			//fmt.Println("findLeaderOnElection running")
 		}
 		temp++
 		lock.Lock()
@@ -642,13 +645,13 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 
 		lock.Lock()
 		if lb.primary == -2 {
-			fmt.Println("lb.primary ==-2---", lb.primary)
-			fmt.Println("*******lb ", lb)
+			//fmt.Println("lb.primary ==-2---", lb.primary)
+			//fmt.Println("*******lb ", lb)
 			lock.Unlock()
 			time.Sleep(time.Second * 1)
 			lock.Lock()
 			if lb.primary == -2 {
-				fmt.Println("lb.primary is still -2---", lb.primary)
+				//fmt.Println("lb.primary is still -2---", lb.primary)
 
 				lb.primary = -1
 
