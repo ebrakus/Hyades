@@ -155,6 +155,7 @@ func (lb *LoadBalancer) UpdateLoadMatrix() {
 	var data jsonMessage
 	//defer fmt.Println("=========Exiting Update Thread")
 	for {
+		fmt.Println("UpdateLoadMatrix running")
 		//lb.curLoad1[lb.id] = rand.Intn(10)
 		//lb.curLoad2[lb.id] = rand.Intn(10)
 		/*Have to Send*/
@@ -545,6 +546,7 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 	count := 0
 	fmt.Println("Starting to find Leader")
 	for {
+		fmt.Println("UpdateLoadMatrix running")
 		lock.Lock()
 		//fmt.Printf("$$$$$$$$$$$$$$$Address %p\n", &(lb.primary))
 		count = -1
