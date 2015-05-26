@@ -154,8 +154,12 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 func (lb *LoadBalancer) UpdateLoadMatrix() {
 	var data jsonMessage
 	//defer fmt.Println("=========Exiting Update Thread")
+	temp:=0
 	for {
-		fmt.Println("UpdateLoadMatrix running")
+		if temp%1000==0{
+			fmt.Println("UpdateLoadMatrix running")
+		}
+		temp++
 		//lb.curLoad1[lb.id] = rand.Intn(10)
 		//lb.curLoad2[lb.id] = rand.Intn(10)
 		/*Have to Send*/
@@ -544,9 +548,13 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 	var data jsonMessage
 	var e error
 	count := 0
+	temp:=0
 	fmt.Println("Starting to find Leader")
 	for {
-		fmt.Println("UpdateLoadMatrix running")
+		if temp%1000==0{
+			fmt.Println("findLeaderOnElection running")
+		}
+		temp++
 		lock.Lock()
 		//fmt.Printf("$$$$$$$$$$$$$$$Address %p\n", &(lb.primary))
 		count = -1
