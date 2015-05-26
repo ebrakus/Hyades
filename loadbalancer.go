@@ -153,28 +153,25 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 
 func (lb *LoadBalancer) UpdateLoadMatrix() {
 	var data jsonMessage
-	defer fmt.Println("=========Exiting Update Thread")
+	//defer fmt.Println("=========Exiting Update Thread")
 	for {
 		//lb.curLoad1[lb.id] = rand.Intn(10)
 		//lb.curLoad2[lb.id] = rand.Intn(10)
 		/*Have to Send*/
-		fmt.Println("CAbout to sleep in UpdateLoadMatrix")
+		//fmt.Println("CAbout to sleep in UpdateLoadMatrix")
 		time.Sleep(1 * time.Second)
 
 		lock.Lock()
-		fmt.Println("back from sleep")
+		//fmt.Println("back from sleep")
 		//Call primary RPC
-		fmt.Printf("UpdateLoadMatrix %d, %s\n", lb.primary, lb.port)
-		if lb.primary >= 0 {
+		//fmt.Printf("UpdateLoadMatrix %d, %s\n", lb.primary, lb.port)
+		/*if lb.primary >= 0 {
 			fmt.Printf("UpdateLoadMatrix primary:  %s\n", lb.portsLB[lb.primary])
-		}
-
-		fmt.Println("Next.....")
+		}*/
 
 		if lb.primary >= 0 && lb.port != lb.portsLB[lb.primary] {
-			fmt.Println("Inside Loop.....")
 			port, _ := strconv.Atoi(lb.portsLB[lb.primary])
-			fmt.Println("Calling NewClient", port-2000)
+			//fmt.Println("Calling NewClient", port-2000)
 
 			data.OpCode = "loadUpdate"
 			data.LbId = lb.id
@@ -182,15 +179,13 @@ func (lb *LoadBalancer) UpdateLoadMatrix() {
 			data.Load[1] = lb.curLoad2[lb.id]
 
 			b, _ := json.Marshal(data)
-			fmt.Println("Marshalled Data")
 			_, e := lb.NewClient("127.0.0.1:"+strconv.Itoa(port-2000), b)
-			fmt.Println("Calling NewClient Partial Complete")
 			if e != nil {
 				fmt.Println("Error in calling RPC", e)
 			}
 		}
 
-		fmt.Println("Calling NewClient Complete")
+		//fmt.Println("Calling NewClient Complete")
 		lock.Unlock()
 	}
 }
@@ -213,7 +208,6 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 	var data jsonMessage
 	var toSend jsonMessagePrimary
 
-	//fmt.Printf("***************Address of self %p\n", &(self.primary))
 	e := json.Unmarshal(in, &data)
 	if e != nil {
 		fmt.Println("==================Unmarshalling error")
@@ -222,7 +216,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 	switch data.OpCode {
 	case "loadUpdate":
-		fmt.Println("============================Received ", data)
+		//fmt.Println("============================Received ", data)
 		self.aliveLB[data.LbId] = true
 		receivedFrom[data.LbId] = true
 		self.curLoad1[data.LbId] = data.Load[0]
@@ -251,25 +245,34 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 			*n = self.primary
 			return nil
 		}
-	case "realPrimary":
-		fmt.Println("Received ", data)
-		primary := data.Load[0]
+	/*case "realPrimary":
+	fmt.Println("Received ", data)
+	primary := data.Load[0]
 
-		if primary >= 0 {
-			if self.primary < 0 {
-				self.primary = primary
-			} else if primary < self.primary {
-				self.primary = primary
-			}
+	if primary >= 0 {
+		if self.primary < 0 {
+			self.primary = primary
+		} else if primary < self.primary {
+			self.primary = primary
 		}
-		fmt.Println("Current Structure ", self)
+	}
+	fmt.Println("Current Structure ", self)
+	*/
 	case "updateFromPrimary":
 		/* Received data from Primary*/
 		e = json.Unmarshal(in, &toSend)
 		if e != nil {
 			return e
 		}
+		for i := self.primary; i < 10; i++ {
+			if toSend.CurLoad1[i] == -1 {
+				self.aliveLB[i] = false
+			} else {
+				self.aliveLB[i] = true
+			}
+		}
 		fmt.Println("Received JSON from", toSend)
+		fmt.Println("ALIVE matrix", self.aliveLB)
 	case "healthCheck":
 		*n = -3
 		return nil
@@ -281,7 +284,7 @@ func (self *LoadBalancer) NewMessage(in []byte, n *int) error {
 	//fmt.Println(self.aliveLB, receivedFrom)
 	if self.id == self.primary && isEqual(receivedFrom, self.aliveLB) == true {
 		/* Received from all alive. Send back info */
-		fmt.Println("Sending data to all other nodes")
+		//fmt.Println("Sending data to all other nodes")
 		toSend.OpCode = "updateFromPrimary"
 		toSend.LbId = self.id
 		for i := 0; i < 10; i++ {
@@ -439,6 +442,9 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 		return lb.id
 	}
 	sum2 := (count - 1) * sum
+	if sum2 == 0 {
+		return lb.id
+	}
 
 	r := rand.Intn(sum2)
 	fmt.Println("Random value is :", r)
