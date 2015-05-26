@@ -36,7 +36,7 @@ func temp(server string, count *int, n int) {
 	}
 
 	httpClient := &http.Client{Transport: transport}
-	req, _ := http.NewRequest("GET", "http://128.54.47.173:"+strconv.Itoa(port_number)+"/"+server+"/", nil)
+	req, _ := http.NewRequest("GET", "http://127.0.0.1:"+strconv.Itoa(port_number)+"/"+server+"/", nil)
 	req.Header.Set("Connection", "close")
 	req.Close = true
 	resp, err := httpClient.Do(req)

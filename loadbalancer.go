@@ -29,13 +29,13 @@ type LoadBalancer struct {
 	portsLB    []string
 	aliveLB    []bool
 	numServers int      /*Number of servers in each of the server sets*/
-	totServers int 		/*Total number of servers that exist*/
+	totServers int      /*Total number of servers that exist*/
 	servers1   []string /*Server set 1's IP's*/
 	servers2   []string /*Server set 2's IP's*/
 	load1      []int    /*Load of self server set 1*/
 	load2      []int    /*Load of self server set 2*/
-	curLoad1 []int /*Load1 of server set of other load balancers*/
-	curLoad2 []int /*Load2 of server set of other load balancers*/
+	curLoad1   []int    /*Load1 of server set of other load balancers*/
+	curLoad2   []int    /*Load2 of server set of other load balancers*/
 }
 
 type jsonMessage struct {
@@ -61,18 +61,18 @@ func (lb *LoadBalancer) Init(id int, totServers int) {
 	fmt.Println("Id and totServers are", lb.id, lb.totServers)
 
 	/*
-	lb.servers1 = make([]string, 0)
-	lb.servers2 = make([]string, 0)
+		lb.servers1 = make([]string, 0)
+		lb.servers2 = make([]string, 0)
 
-	lb.load1 = make([]int, lb.numServers)
-	lb.load2 = make([]int, lb.numServers)
+		lb.load1 = make([]int, lb.numServers)
+		lb.load2 = make([]int, lb.numServers)
 
-	for i := 0; i < lb.numServers; i++ {
-		lb.servers1 = append(lb.servers1, strconv.Itoa(9000+10*lb.id+i))
-		lb.load1[i] = 0
-		lb.servers2 = append(lb.servers2, strconv.Itoa(9100+10*lb.id+i))
-		lb.load2[i] = 0
-	}*/
+		for i := 0; i < lb.numServers; i++ {
+			lb.servers1 = append(lb.servers1, strconv.Itoa(9000+10*lb.id+i))
+			lb.load1[i] = 0
+			lb.servers2 = append(lb.servers2, strconv.Itoa(9100+10*lb.id+i))
+			lb.load2[i] = 0
+		}*/
 
 	lb.port = strconv.Itoa(8000 + lb.id)
 	lb.portsLB = make([]string, 10)
@@ -265,23 +265,23 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			return e
 		}
 
-		lbActive:=0
-		myPos:=0 //my active postion ; i.e if 1,2,5,10 are active then I(5) am third
-		for i:=0;i<10;i++{
-			if i==lb.id{
-				myPos=i
+		lbActive := 0
+		myPos := 0 //my active postion ; i.e if 1,2,5,10 are active then I(5) am third
+		for i := 0; i < 10; i++ {
+			if i == lb.id {
+				myPos = i
 			}
-			if toSend.CurLoad1[i] !=-1 {
+			if toSend.CurLoad1[i] != -1 {
 				lbActive++
 			}
 		}
 
-		lb.numServers = (lb.totServers/2)/lbActive //numServers in each serverset
+		lb.numServers = (lb.totServers / 2) / lbActive //numServers in each serverset
 		/*if (lb.totServers/2)%lbActive!=0 && (lb.totServers/2)%lbActive>myPos{
 			lb.numServers++
 		}*/
 
-		fmt.Println("Total servers, lbActive and lb.numServers",lb.totServers,lbActive,lb.numServers)
+		fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
 		lb.servers1 = make([]string, lb.numServers)
 		lb.servers2 = make([]string, lb.numServers)
 
@@ -289,14 +289,14 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		lb.load2 = make([]int, lb.numServers)
 
 		for i := 0; i < lb.numServers; i++ {
-			lb.servers1[i]=strconv.Itoa(9000+myPos*lb.numServers+i)
+			lb.servers1[i] = strconv.Itoa(9000 + myPos*lb.numServers + i)
 			lb.load1[i] = 0
-			lb.servers2[i]=strconv.Itoa(9100+myPos*lb.numServers+i)
+			lb.servers2[i] = strconv.Itoa(9100 + myPos*lb.numServers + i)
 			lb.load2[i] = 0
 		}
 
-		fmt.Println("I am going to manage servers in SS1:",lb.servers1)
-		fmt.Println("I am going to manage servers in SS2:",lb.servers2)
+		fmt.Println("I am going to manage servers in SS1:", lb.servers1)
+		fmt.Println("I am going to manage servers in SS2:", lb.servers2)
 
 		for i := lb.primary; i < 10; i++ {
 			if toSend.CurLoad1[i] == -1 {
@@ -323,51 +323,55 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 	if lb.id == lb.primary && isEqual(receivedFrom, lb.aliveLB) == true {
 		/* Received from all alive. Send back info */
 		//fmt.Println("Sending data to all other nodes")
+
+		/*
+			toSend.OpCode = "updateFromPrimary"
+			toSend.LbId = lb.id
+			for i := 0; i < 10; i++ {
+				toSend.CurLoad1[i] = lb.curLoad1[i]
+				toSend.CurLoad2[i] = lb.curLoad2[i]
+			}
+			//toSend.CurLoad1_other[lb.id] = lb.curLoad1
+			//toSend.CurLoad2_other[lb.id] = lb.curLoad2
+
+
+			lbActive:=0
+			myPos:=0 //my active postion ; i.e if 1,2,5,10 are active then I(5) am third
+			for i:=0;i<10;i++{
+				if i==lb.id{
+					myPos=i
+				}
+				if toSend.CurLoad1[i] !=-1 {
+					lbActive++
+				}
+			}
+
+			lb.numServers = (lb.totServers/2)/lbActive //numServers in each serverset
+
+			fmt.Println("Total servers, lbActive and lb.numServers",lb.totServers,lbActive,lb.numServers)
+			lb.servers1 = make([]string, lb.numServers)
+			lb.servers2 = make([]string, lb.numServers)
+
+			lb.load1 = make([]int, lb.numServers)
+			lb.load2 = make([]int, lb.numServers)
+
+			for i := 0; i < lb.numServers; i++ {
+				lb.servers1[i]=strconv.Itoa(9000+myPos*lb.numServers+i)
+				lb.load1[i] = 0
+				lb.servers2[i]=strconv.Itoa(9100+myPos*lb.numServers+i)
+				lb.load2[i] = 0
+			}
+
+			fmt.Println("I am going to manage servers in SS1:",lb.servers1)
+			fmt.Println("I am going to manage servers in SS2:",lb.servers2)
+		*/
+
 		toSend.OpCode = "updateFromPrimary"
 		toSend.LbId = lb.id
 		for i := 0; i < 10; i++ {
 			toSend.CurLoad1[i] = lb.curLoad1[i]
 			toSend.CurLoad2[i] = lb.curLoad2[i]
 		}
-		//toSend.CurLoad1_other[lb.id] = lb.curLoad1
-		//toSend.CurLoad2_other[lb.id] = lb.curLoad2
-
-
-		lbActive:=0
-		myPos:=0 //my active postion ; i.e if 1,2,5,10 are active then I(5) am third
-		for i:=0;i<10;i++{
-			if i==lb.id{
-				myPos=i
-			}
-			if toSend.CurLoad1[i] !=-1 {
-				lbActive++
-			}
-		}
-
-		lb.numServers = (lb.totServers/2)/lbActive //numServers in each serverset
-		/*if (lb.totServers/2)%lbActive!=0 && (lb.totServers/2)%lbActive>myPos{
-			lb.numServers++
-		}*/
-
-		fmt.Println("Total servers, lbActive and lb.numServers",lb.totServers,lbActive,lb.numServers)
-		lb.servers1 = make([]string, lb.numServers)
-		lb.servers2 = make([]string, lb.numServers)
-
-		lb.load1 = make([]int, lb.numServers)
-		lb.load2 = make([]int, lb.numServers)
-
-		for i := 0; i < lb.numServers; i++ {
-			lb.servers1[i]=strconv.Itoa(9000+myPos*lb.numServers+i)
-			lb.load1[i] = 0
-			lb.servers2[i]=strconv.Itoa(9100+myPos*lb.numServers+i)
-			lb.load2[i] = 0
-		}
-
-		fmt.Println("I am going to manage servers in SS1:",lb.servers1)
-		fmt.Println("I am going to manage servers in SS2:",lb.servers2)
-
-
-
 		b, e := json.Marshal(toSend)
 		if e != nil {
 			//return e
@@ -382,6 +386,8 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			if e != nil {
 				//Looks like the node is dead
 				lb.aliveLB[i] = false
+				lb.curLoad1[i] = -1
+				lb.curLoad2[i] = -1
 			}
 			receivedFrom[i] = false
 		}
@@ -464,9 +470,9 @@ func main() {
 				fmt.Println("Calling Load Matix for lb.load1")
 				sendToServer := lb.whereToSend(&lb.load1, lb.numServers)
 				//port = 9000 + 10*lb.id + sendToServer
-				port,_= strconv.Atoi(lb.servers1[sendToServer])
-				fmt.Println("Server Set 1 is :",lb.servers1)
-				fmt.Println("Port in ascii is :",lb.servers1[sendToServer])
+				port, _ = strconv.Atoi(lb.servers1[sendToServer])
+				fmt.Println("Server Set 1 is :", lb.servers1)
+				fmt.Println("Port in ascii is :", lb.servers1[sendToServer])
 				lb.load1[sendToServer]++
 				lb.curLoad1[lb.id]++
 			}
@@ -484,8 +490,8 @@ func main() {
 			} else {
 				fmt.Println("Calling Load Matix for lb.load2")
 				sendToServer := lb.whereToSend(&lb.load2, lb.numServers)
-				port,_= strconv.Atoi(lb.servers2[sendToServer])
-				fmt.Println("Port in ascii is :",lb.servers2[sendToServer])
+				port, _ = strconv.Atoi(lb.servers2[sendToServer])
+				fmt.Println("Port in ascii is :", lb.servers2[sendToServer])
 				lb.load2[sendToServer]++
 				lb.curLoad2[lb.id]++
 			}
