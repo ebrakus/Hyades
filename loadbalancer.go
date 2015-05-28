@@ -191,7 +191,7 @@ func (lb *LoadBalancer) drawGraph() {
 	//timeInterval:=100
 	//totalTime:=5000
 	//numPeriods := totalTime/timeInterval //(5secs/100ms)
-	numPeriods := 25 //len(req_sent_per_time_server1)
+	numPeriods := 100 //len(req_sent_per_time_server1)
 
 	pts := make(plotter.XYs, numPeriods)
 	//pts2 := make(plotter.XYs, numPeriods)
@@ -896,7 +896,7 @@ func min(a, b int) int {
 
 func counter_poller(lb *LoadBalancer) {
 	for {
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Millisecond * 100)
 		lock.Lock()
 		//glb_loadbalancer1 = append(glb_loadbalancer1, lb.curLoad1)
 		//glb_loadbalancer2 = append(glb_loadbalancer2, lb.curLoad2)
