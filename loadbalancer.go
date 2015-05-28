@@ -184,18 +184,37 @@ func (lb *LoadBalancer) drawGraph() {
 	//totalTime:=5000
 	//numPeriods := totalTime/timeInterval //(5secs/100ms)
 	numPeriods := 100 //len(req_sent_per_time_server1)
-	pts1 := make(plotter.XYs, numPeriods)
-	pts2 := make(plotter.XYs, numPeriods)
-	for i := range pts1 {
-		pts1[i].X = float64(1 * i)
-		pts2[i].X = float64(1 * i)
-		pts1[i].Y = float64(req_sent_per_time_server1[i])
-		pts2[i].Y = float64(reply_recv_per_time_server1[i])
+
+	//pts1 := make(plotter.XYs, numPeriods)
+	//pts2 := make(plotter.XYs, numPeriods)
+
+	var pts []plotter.XYs 
+
+	for i:=0;i< 10;i++{
+		pts[i] = make(plotter.XYs, numPeriods)
+	}
+
+	for j :=0;j<numPeriods;j++ {
+		//pts1[i].X = float64(1 * i)
+		//pts2[i].X = float64(1 * i)
+		//pts1[i].Y = float64(req_sent_per_time_server1[i])
+		//pts2[i].Y = float64(reply_recv_per_time_server1[i])
+		for i:=0;i<10;i++{
+			pts[i][j].X =  float64(1 * j)
+			pts[i][j].Y = float64(glb_loadbalancer1[j][i])
+		}
 	}
 
 	/*err = plotutil.AddLinePoints(p,
 	"Requests For Server 1", pts1,
 	"Responses Server 1", pts2)*/
+
+	for i:=0;i<10;i++{
+		temp:=i+1
+
+		tempS:= "Load Balancer" + strconv.Itoa(temp) + "Requests"
+		err= plotutil.AddLinePoints(p, tempS, pts[i])
+	}
 
 	if err != nil {
 		panic(err)
