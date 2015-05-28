@@ -56,6 +56,8 @@ func main() {
 	cmd_type := os.Args[1]
 	number, _ := strconv.Atoi(os.Args[2])
 	lb_id, _ := strconv.Atoi(os.Args[3])
+    image_file:=os.Args[4]
+
 
 	req_sent_server1 = 0
 	req_sent_server2 = 0
@@ -133,7 +135,7 @@ func main() {
 	}
 
 	// Save the plot to a PNG file.
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, "client1.png"); err != nil {
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file ); err != nil {
 		panic(err)
 	}
 

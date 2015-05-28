@@ -109,6 +109,8 @@ func (lb *LoadBalancer) Init(id int, totServers int) {
 	go lb.findLeaderOnElection()
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
 	go lb.ServeBack()
+	//runtime.GOMAXPROCS(runtime.NumCPU() + 1)
+	//go lb.drawGraph()
 }
 
 /*
@@ -151,6 +153,52 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 
 }
 */
+
+/*
+func (lb *LoadBalancer) drawGraph() {
+
+for{
+	time.Sleep(time.Second*10)
+	lock.Lock()
+	p, err := plot.New()
+	if err != nil {
+		panic(err)
+	}
+
+	p.Title.Text = "Load balancer Graph"
+	p.X.Label.Text = "Time"
+	p.Y.Label.Text = "Number"
+
+	//timeInterval:=100
+	//totalTime:=5000
+	//numPeriods := totalTime/timeInterval //(5secs/100ms)
+	numPeriods := 100 //len(req_sent_per_time_server1)
+	pts1 := make(plotter.XYs, numPeriods)
+	pts2 := make(plotter.XYs, numPeriods)
+	for i := range pts1 {
+		pts1[i].X = float64(1 * i)
+		pts2[i].X = float64(1 * i)
+
+		pts1[i].Y = float64(req_sent_per_time_server1[i])
+		pts2[i].Y = float64(reply_recv_per_time_server1[i])
+	}
+
+	err = plotutil.AddLinePoints(p,
+		"Requests For Server 1", pts1,
+		"Responses Server 1", pts2)
+
+	if err != nil {
+		panic(err)
+	}
+
+	// Save the plot to a PNG file.
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file ); err != nil {
+		panic(err)
+	}
+	lock.Unlock()
+}
+
+}*/
 
 func (lb *LoadBalancer) UpdateLoadMatrix() {
 	var data jsonMessage
@@ -807,3 +855,6 @@ func min(a,b int) int{
 		return b
 	}
 }
+
+
+
