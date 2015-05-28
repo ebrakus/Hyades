@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gonum/plot"
 	"github.com/gonum/plot/plotter"
-	"github.com/gonum/plot/plotutil"
+	//"github.com/gonum/plot/plotutil"
 	"github.com/gonum/plot/vg"
 	"io/ioutil"
 	"net"
@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"time"
+	"image/color"
 )
 
 var (
@@ -66,6 +67,13 @@ func main() {
 	reply_recv_per_time_server2 = make([]int, 0)
 	reply_recv_server1 = make([]int, number)
 	reply_recv_server2 = make([]int, number)
+
+	//Have to remove below : TODO
+	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
+	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
+	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
+	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
+	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
 
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
 	go counter_poller(number)
@@ -124,7 +132,7 @@ func main() {
 		pts1[i].Y = float64(req_sent_per_time_server1[i])
 		pts2[i].Y = float64(reply_recv_per_time_server1[i])
 	}
-
+	/*
 	err = plotutil.AddLinePoints(p,
 		"Requests For Server 1", pts1,
 		"Responses Server 1", pts2)
@@ -136,7 +144,45 @@ func main() {
 	// Save the plot to a PNG file.
 	if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file); err != nil {
 		panic(err)
-	}
+	}*/
+
+	p.Add(plotter.NewGrid())
+
+    
+    l, err := plotter.NewLine(pts1)
+    if err != nil {
+        panic(err)
+    }
+    l.LineStyle.Width = vg.Points(1)
+    l.LineStyle.Color = color.RGBA{R:0,G:255,B: 255}
+
+    
+    p.Add(l)
+    p.Legend.Add("requests", l)
+
+
+    p.Add(plotter.NewGrid())
+
+    
+    l2, err := plotter.NewLine(pts2)
+    if err != nil {
+        panic(err)
+    }
+    l2.LineStyle.Width = vg.Points(1)
+    l2.LineStyle.Color = color.RGBA{R:255,G: 255,B:0}
+
+    
+    p.Add(l2)
+    p.Legend.Add("responses", l2)
+
+
+
+    // Save the plot to a PNG file.
+    if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file); err != nil {
+        panic(err)
+    }
+
+
 
 	//fmt.Println("Req to Server1", req_sent_per_time_server1)
 	//fmt.Println("Reply from Server1", reply_recv_per_time_server1)

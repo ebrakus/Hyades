@@ -24,6 +24,10 @@ function reqHandler(req, res) {
     var temp;
     res.write('Response from ' + req.socket.localPort + '\n');
     res.end();
+    /*setTimeout(function() {
+         console.log('hello world!');
+    }, 1000);
+*/
 }
 ports.forEach(function(port) {
     s = http.createServer(reqHandler);

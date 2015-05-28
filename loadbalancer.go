@@ -728,6 +728,7 @@ func main() {
 		req.URL.Host = target.Host
 		lock.Unlock()
 
+		//time.Sleep(time.Millisecond * 100)
 	}
 
 	err := http.ListenAndServe(":"+lb.port, reverseProxy)
