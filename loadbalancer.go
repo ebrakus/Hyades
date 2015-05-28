@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gonum/plot"
 	"github.com/gonum/plot/plotter"
-	"github.com/gonum/plot/plotutil"
 	"github.com/gonum/plot/vg"
 	"log"
 	"math/rand"
@@ -20,6 +19,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"image/color"
 )
 
 var receivedFrom []bool
@@ -179,6 +179,7 @@ func (lb *LoadBalancer) drawGraph() {
 
 	time.Sleep(time.Second * 30)
 	lock.Lock()
+
 	p, err := plot.New()
 	if err != nil {
 		panic(err)
@@ -188,38 +189,13 @@ func (lb *LoadBalancer) drawGraph() {
 	p.X.Label.Text = "Time"
 	p.Y.Label.Text = "Load Balancer Request"
 
-	//timeInterval:=100
-	//totalTime:=5000
-	//numPeriods := totalTime/timeInterval //(5secs/100ms)
-	numPeriods := 100 //len(req_sent_per_time_server1)
-
+	numPeriods := 100 
 	pts := make(plotter.XYs, numPeriods)
-	//pts2 := make(plotter.XYs, numPeriods)
 
-	//var pts []plotter.XYs 
-	//pts:=make([]plotter.XYs,10)
-	//fmt.Println("pts is:",pts)
+	p.Add(plotter.NewGrid())
 
-	//for i:=0;i< 10;i++{
-	//	pts[i] = make(plotter.XYs, numPeriods)
-	//}
-
-	/*for j :=0;j<numPeriods;j++ {
-		//pts1[i].X = float64(1 * i)
-		//pts2[i].X = float64(1 * i)
-		//pts1[i].Y = float64(req_sent_per_time_server1[i])
-		//pts2[i].Y = float64(reply_recv_per_time_server1[i])
-		for i:=0;i<10;i++{
-			pts[i][j].X =  float64(1 * j)
-			pts[i][j].Y = float64(glb_loadbalancer1[j][i])
-		}
-	}*/
-
-	/*err = plotutil.AddLinePoints(p,
-	"Requests For Server 1", pts1,
-	"Responses Server 1", pts2)*/
-
-	fmt.Println("Load Balancer loads are ................\n",glb_loadbalancer1)
+    
+    fmt.Println("Load Balancer loads are ................\n",glb_loadbalancer1)
 	for i:=0;i<10;i++{
 		temp:=i+1
 		for j :=0;j<numPeriods;j++ {
@@ -227,17 +203,23 @@ func (lb *LoadBalancer) drawGraph() {
 			pts[j].Y = float64(glb_loadbalancer1[j][i])
 		}
 		tempS:= "Load Balancer" + strconv.Itoa(temp) + "Requests"
-		err= plotutil.AddLinePoints(p, tempS, pts)
+		l, err := plotter.NewLine(pts)
+		if err!=nil{
+			fmt.Println("Error in plotting")
+		}
+		l.LineStyle.Width = vg.Points(1)
+		red:=uint8(50*(i+1))
+		green:=uint8(40*(i+1))
+		blue:=uint8(35*(i+1))
+   		l.LineStyle.Color = color.RGBA{R:red,G:green,B:blue,A:255}
+   		p.Add(l)
+    	p.Legend.Add(tempS, l)
 	}
 
-	if err != nil {
-		panic(err)
-	}
-
-	// Save the plot to a PNG file.
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_lb); err != nil {
-		panic(err)
-	}
+    // Save the plot to a PNG file.
+    if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_lb); err != nil {
+        panic(err)
+    }
 
 	lock.Unlock()
 

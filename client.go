@@ -119,10 +119,7 @@ func main() {
 	p.X.Label.Text = "Time"
 	p.Y.Label.Text = "Number"
 
-	//timeInterval:=100
-	//totalTime:=5000
-	//numPeriods := totalTime/timeInterval //(5secs/100ms)
-	numPeriods := 100 //len(req_sent_per_time_server1)
+	numPeriods:=100
 	pts1 := make(plotter.XYs, numPeriods)
 	pts2 := make(plotter.XYs, numPeriods)
 	for i := range pts1 {
@@ -132,19 +129,6 @@ func main() {
 		pts1[i].Y = float64(req_sent_per_time_server1[i])
 		pts2[i].Y = float64(reply_recv_per_time_server1[i])
 	}
-	/*
-	err = plotutil.AddLinePoints(p,
-		"Requests For Server 1", pts1,
-		"Responses Server 1", pts2)
-
-	if err != nil {
-		panic(err)
-	}
-
-	// Save the plot to a PNG file.
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file); err != nil {
-		panic(err)
-	}*/
 
 	p.Add(plotter.NewGrid())
 
