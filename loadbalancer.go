@@ -16,11 +16,17 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/gonum/plot"
+	"github.com/gonum/plot/plotter"
+	"github.com/gonum/plot/plotutil"
+	"github.com/gonum/plot/vg"
 )
 
 var receivedFrom []bool
 var lock sync.Mutex
 var timeOut time.Time
+var image_file_lb string
+var image_file_servers string
 
 type LoadBalancer struct {
 	id         int    /*Identification of load balancer*/
@@ -109,8 +115,8 @@ func (lb *LoadBalancer) Init(id int, totServers int) {
 	go lb.findLeaderOnElection()
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
 	go lb.ServeBack()
-	//runtime.GOMAXPROCS(runtime.NumCPU() + 1)
-	//go lb.drawGraph()
+	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
+	go lb.drawGraph()
 }
 
 /*
@@ -154,10 +160,9 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 }
 */
 
-/*
+
 func (lb *LoadBalancer) drawGraph() {
 
-for{
 	time.Sleep(time.Second*10)
 	lock.Lock()
 	p, err := plot.New()
@@ -167,7 +172,7 @@ for{
 
 	p.Title.Text = "Load balancer Graph"
 	p.X.Label.Text = "Time"
-	p.Y.Label.Text = "Number"
+	p.Y.Label.Text = "Load Balancer Request"
 
 	//timeInterval:=100
 	//totalTime:=5000
@@ -178,27 +183,35 @@ for{
 	for i := range pts1 {
 		pts1[i].X = float64(1 * i)
 		pts2[i].X = float64(1 * i)
-
 		pts1[i].Y = float64(req_sent_per_time_server1[i])
 		pts2[i].Y = float64(reply_recv_per_time_server1[i])
 	}
 
-	err = plotutil.AddLinePoints(p,
+	/*err = plotutil.AddLinePoints(p,
 		"Requests For Server 1", pts1,
-		"Responses Server 1", pts2)
+		"Responses Server 1", pts2)*/
 
 	if err != nil {
 		panic(err)
 	}
 
 	// Save the plot to a PNG file.
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file ); err != nil {
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_lb ); err != nil {
 		panic(err)
 	}
-	lock.Unlock()
-}
 
-}*/
+
+
+
+
+
+	lock.Unlock()
+
+
+
+
+
+}
 
 func (lb *LoadBalancer) UpdateLoadMatrix() {
 	var data jsonMessage
@@ -626,6 +639,8 @@ func main() {
 	//fmt.Printf("Address in main %p\n", &lb)
 	id, _ := strconv.Atoi(os.Args[1])
 	totServers, _ := strconv.Atoi(os.Args[2])
+	image_file_lb= os.Args[3]
+	image_file_servers=os.Args[4]
 
 	(&lb).Init(id, totServers)
 	fmt.Println("Id and totServers are", lb.id, lb.totServers)
