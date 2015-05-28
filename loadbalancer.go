@@ -28,9 +28,10 @@ var timeOut time.Time
 var image_file_lb string
 var image_file_servers string
 
-var glb_loadbalancer []int
-var glb_server1 []int
-var glb_server2 []int
+var glb_loadbalancer1 [][]int
+var glb_loadbalancer2 [][]int
+var glb_server1 [][]int
+var glb_server2 [][]int
 
 type LoadBalancer struct {
 	id         int    /*Identification of load balancer*/
@@ -863,8 +864,8 @@ func min(a, b int) int {
 func counter_poller(lb *LoadBalancer) {
 	for {
 		time.Sleep(time.Millisecond * 5)
-		glb_loadbalancer1 = append(glb_loadbalancer, lb.curLoad1)
-		glb_loadbalancer2 = append(glb_loadbalancer, lb.curLoad2)
+		glb_loadbalancer1 = append(glb_loadbalancer1, lb.curLoad1)
+		glb_loadbalancer2 = append(glb_loadbalancer2, lb.curLoad2)
 		glb_server1 = append(glb_server1, lb.load1)
 		glb_server2 = append(glb_server2, lb.load2)
 
