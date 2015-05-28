@@ -286,6 +286,23 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		}
 
 		oldNumServers:=lb.numServers
+		var oldLoad1 map[string]int
+		var oldLoad2 map[string]int
+
+		oldLoad1 = make(map[string]int)
+		oldLoad2 = make(map[string]int)
+
+		minLoad1:=0//Change this:TODO
+		minLoad2:=0//Change this:TODO
+
+		for i:=0;i<oldNumServers;i++{
+			oldLoad1[lb.servers1[i]]=lb.load1[i]
+			oldLoad2[lb.servers1[i]]=lb.load2[i]
+			minLoad1=min(minLoad1,lb.load1[i])
+			minLoad2=min(minLoad2,lb.load2[i])
+		}
+
+
 		lb.numServers = (lb.totServers / 2) / lbActive //numServers in each serverset
 		/*if (lb.totServers/2)%lbActive!=0 && (lb.totServers/2)%lbActive>myPos{
 			lb.numServers++
@@ -293,23 +310,30 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 		fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
 
-		flag:=false
-		fmt.Println("Old and new are:",lb.numServers,oldNumServers)
-		if lb.numServers != oldNumServers{
-			flag=true
-			lb.servers1 = make([]string, lb.numServers)
-			lb.servers2 = make([]string, lb.numServers)
 
-			lb.load1 = make([]int, lb.numServers)
-			lb.load2 = make([]int, lb.numServers)
-		}
+		fmt.Println("Old and new are:",lb.numServers,oldNumServers)
+
+		lb.servers1 = make([]string, lb.numServers)
+		lb.servers2 = make([]string, lb.numServers)
+
+		lb.load1 = make([]int, lb.numServers)
+		lb.load2 = make([]int, lb.numServers)
+		
 
 		for i := 0; i < lb.numServers; i++ {
 			lb.servers1[i] = strconv.Itoa(9000 + myPos*lb.numServers + i)
 			lb.servers2[i] = strconv.Itoa(9100 + myPos*lb.numServers + i)
-			if flag==true{
-				lb.load1[i] = 0
-				lb.load2[i] = 0
+
+			if oldLoad1[lb.servers1[i]]==-1{
+				lb.load1[i] = oldLoad1[lb.servers1[i]]
+			}else{
+				lb.load1[i]=minLoad1
+			}
+
+			if oldLoad2[lb.servers2[i]]==-1{
+				lb.load2[i] = oldLoad2[lb.servers2[i]]
+			}else{
+				lb.load2[i]=minLoad2
 			}
 		}
 
@@ -371,21 +395,80 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			}
 		}
 
-		lb.numServers = (lb.totServers / 2) / lbActive //numServers in each serverset
+		oldNumServers:=lb.numServers
+		var oldLoad1 map[string]int
+		var oldLoad2 map[string]int
 
-		//fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
+		oldLoad1 = make(map[string]int)
+		oldLoad2 = make(map[string]int)
+
+		minLoad1:=0//Change this:TODO
+		minLoad2:=0//Change this:TODO
+
+		for i:=0;i<oldNumServers;i++{
+			oldLoad1[lb.servers1[i]]=lb.load1[i]
+			oldLoad2[lb.servers1[i]]=lb.load2[i]
+			minLoad1=min(minLoad1,lb.load1[i])
+			minLoad2=min(minLoad2,lb.load2[i])
+		}
+
+
+		lb.numServers = (lb.totServers / 2) / lbActive //numServers in each serverset
+		/*if (lb.totServers/2)%lbActive!=0 && (lb.totServers/2)%lbActive>myPos{
+			lb.numServers++
+		}*/
+
+		fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
+
+
+		fmt.Println("Old and new are:",lb.numServers,oldNumServers)
+
 		lb.servers1 = make([]string, lb.numServers)
 		lb.servers2 = make([]string, lb.numServers)
 
 		lb.load1 = make([]int, lb.numServers)
 		lb.load2 = make([]int, lb.numServers)
+		
 
 		for i := 0; i < lb.numServers; i++ {
 			lb.servers1[i] = strconv.Itoa(9000 + myPos*lb.numServers + i)
-			lb.load1[i] = 0
 			lb.servers2[i] = strconv.Itoa(9100 + myPos*lb.numServers + i)
-			lb.load2[i] = 0
+
+			if oldLoad1[lb.servers1[i]]==-1{
+				lb.load1[i] = oldLoad1[lb.servers1[i]]
+			}else{
+				lb.load1[i]=minLoad1
+			}
+
+			if oldLoad2[lb.servers2[i]]==-1{
+				lb.load2[i] = oldLoad2[lb.servers2[i]]
+			}else{
+				lb.load2[i]=minLoad2
+			}
 		}
+
+		//fmt.Println("I am going to manage servers in SS1:", lb.servers1)
+		//fmt.Println("I am going to manage servers in SS2:", lb.servers2)
+
+		for i := lb.primary; i < 10; i++ {
+			if toSend.CurLoad1[i] == -1 {
+				lb.aliveLB[i] = false
+				lb.curLoad1[i] = -1
+				lb.curLoad2[i] = -1
+			} else {
+				lb.aliveLB[i] = true
+				lb.curLoad1[i] = toSend.CurLoad1[i]
+				lb.curLoad2[i] = toSend.CurLoad2[i]
+			}
+		}
+		fmt.Println()
+		fmt.Println("Load on different Loadbalancers' ServerSet1", toSend.CurLoad1)
+		fmt.Println("Load on different Loadbalancers' ServerSet2", toSend.CurLoad2)
+		fmt.Println("Load on this Loadbalancers' ServerSet1:",lb.load1)
+		fmt.Println("Load on this Loadbalancers' ServerSet2:",lb.load2)
+		fmt.Println()
+
+
 
 		//fmt.Println("I am going to manage servers in SS1:", lb.servers1)
 		//fmt.Println("I am going to manage servers in SS2:", lb.servers2)
@@ -672,4 +755,19 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 
 	}
 
+}
+
+
+func min(a,b int) int{
+	if a==0 && b==0{
+		return 0
+	}else if a==0 {
+		return b
+	}else if b==0{
+		return a
+	}else if a<b {
+		return b
+	}else{
+		return b
+	}
 }
