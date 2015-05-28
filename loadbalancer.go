@@ -306,18 +306,18 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			}
 		}
 
-		fmt.Println("Initial Load matrix was:",lb.load1)
-		fmt.Println("Min Load1 was:",minLoad1)
+		//fmt.Println("Initial Load matrix was:",lb.load1)
+		//fmt.Println("Min Load1 was:",minLoad1)
 
 		lb.numServers = (lb.totServers / 2) / lbActive //numServers in each serverset
 		/*if (lb.totServers/2)%lbActive!=0 && (lb.totServers/2)%lbActive>myPos{
 			lb.numServers++
 		}*/
 
-		fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
+		//fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
 
 
-		fmt.Println("Old and new are:",lb.numServers,oldNumServers)
+		//fmt.Println("Old and new are:",lb.numServers,oldNumServers)
 
 		lb.servers1 = make([]string, lb.numServers)
 		lb.servers2 = make([]string, lb.numServers)
@@ -325,17 +325,17 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		lb.load1 = make([]int, lb.numServers)
 		lb.load2 = make([]int, lb.numServers)
 		
-		fmt.Println("Old Load matrix was:",oldLoad1)
+		//fmt.Println("Old Load matrix was:",oldLoad1)
 
 		for i := 0; i < lb.numServers; i++ {
 			lb.servers1[i] = strconv.Itoa(9000 + myPos*lb.numServers + i)
 			lb.servers2[i] = strconv.Itoa(9100 + myPos*lb.numServers + i)
 
 			if oldLoad1[lb.servers1[i]]!=0{
-				fmt.Println("Old Load exists",oldLoad1[lb.servers1[i]],lb.servers1[i])
+				//fmt.Println("Old Load exists",oldLoad1[lb.servers1[i]],lb.servers1[i])
 				lb.load1[i] = oldLoad1[lb.servers1[i]]
 			}else{
-				fmt.Println("Assigning min load for:",lb.servers1[i])
+				//fmt.Println("Assigning min load for:",lb.servers1[i])
 				lb.load1[i]=minLoad1
 			}
 
@@ -346,7 +346,7 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			}
 		}
 
-		fmt.Println("Final Load matrix was:",lb.load1)
+		//fmt.Println("Final Load matrix was:",lb.load1)
 
 		//fmt.Println("I am going to manage servers in SS1:", lb.servers1)
 		//fmt.Println("I am going to manage servers in SS2:", lb.servers2)
@@ -454,10 +454,10 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			lb.numServers++
 		}*/
 
-		fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
+		//fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
 
 
-		fmt.Println("Old and new are:",lb.numServers,oldNumServers)
+		//fmt.Println("Old and new are:",lb.numServers,oldNumServers)
 
 		lb.servers1 = make([]string, lb.numServers)
 		lb.servers2 = make([]string, lb.numServers)
