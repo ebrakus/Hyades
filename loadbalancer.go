@@ -32,6 +32,7 @@ var glb_loadbalancer1 [][]int
 var glb_loadbalancer2 [][]int
 var glb_server1 [][]int
 var glb_server2 [][]int
+var graphCounter int
 
 type LoadBalancer struct {
 	id         int    /*Identification of load balancer*/
@@ -116,6 +117,13 @@ func (lb *LoadBalancer) Init(id int, totServers int) {
 		}
 	}
 
+
+	glb_loadbalancer1 = make([][]int,10)
+	glb_loadbalancer2 = make([][]int,10)
+	glb_server1 = make([][]int,0)
+	glb_server2 = make([][]int, 0)
+	graphCounter=0
+
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
 	go lb.findLeaderOnElection()
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
@@ -169,7 +177,7 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 
 func (lb *LoadBalancer) drawGraph() {
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 30)
 	lock.Lock()
 	p, err := plot.New()
 	if err != nil {
@@ -183,18 +191,20 @@ func (lb *LoadBalancer) drawGraph() {
 	//timeInterval:=100
 	//totalTime:=5000
 	//numPeriods := totalTime/timeInterval //(5secs/100ms)
-	numPeriods := 100 //len(req_sent_per_time_server1)
+	numPeriods := 25 //len(req_sent_per_time_server1)
 
-	//pts1 := make(plotter.XYs, numPeriods)
+	pts := make(plotter.XYs, numPeriods)
 	//pts2 := make(plotter.XYs, numPeriods)
 
-	var pts []plotter.XYs 
+	//var pts []plotter.XYs 
+	//pts:=make([]plotter.XYs,10)
+	//fmt.Println("pts is:",pts)
 
-	for i:=0;i< 10;i++{
-		pts[i] = make(plotter.XYs, numPeriods)
-	}
+	//for i:=0;i< 10;i++{
+	//	pts[i] = make(plotter.XYs, numPeriods)
+	//}
 
-	for j :=0;j<numPeriods;j++ {
+	/*for j :=0;j<numPeriods;j++ {
 		//pts1[i].X = float64(1 * i)
 		//pts2[i].X = float64(1 * i)
 		//pts1[i].Y = float64(req_sent_per_time_server1[i])
@@ -203,17 +213,21 @@ func (lb *LoadBalancer) drawGraph() {
 			pts[i][j].X =  float64(1 * j)
 			pts[i][j].Y = float64(glb_loadbalancer1[j][i])
 		}
-	}
+	}*/
 
 	/*err = plotutil.AddLinePoints(p,
 	"Requests For Server 1", pts1,
 	"Responses Server 1", pts2)*/
 
+	fmt.Println("Load Balancer loads are ................\n",glb_loadbalancer1)
 	for i:=0;i<10;i++{
 		temp:=i+1
-
+		for j :=0;j<numPeriods;j++ {
+			pts[j].X = float64(1 * j)
+			pts[j].Y = float64(glb_loadbalancer1[j][i])
+		}
 		tempS:= "Load Balancer" + strconv.Itoa(temp) + "Requests"
-		err= plotutil.AddLinePoints(p, tempS, pts[i])
+		err= plotutil.AddLinePoints(p, tempS, pts)
 	}
 
 	if err != nil {
@@ -882,11 +896,19 @@ func min(a, b int) int {
 
 func counter_poller(lb *LoadBalancer) {
 	for {
-		time.Sleep(time.Millisecond * 5)
-		glb_loadbalancer1 = append(glb_loadbalancer1, lb.curLoad1)
-		glb_loadbalancer2 = append(glb_loadbalancer2, lb.curLoad2)
-		glb_server1 = append(glb_server1, lb.load1)
-		glb_server2 = append(glb_server2, lb.load2)
+		time.Sleep(time.Second *  1)
+		lock.Lock()
+		//glb_loadbalancer1 = append(glb_loadbalancer1, lb.curLoad1)
+		//glb_loadbalancer2 = append(glb_loadbalancer2, lb.curLoad2)
+		//glb_server1 = append(glb_server1, lb.load1)
+		//glb_server2 = append(glb_server2, lb.load2)
+		glb_loadbalancer1[graphCounter] = make([]int, 0)
+
+		for i:=0;i<10;i++{
+			glb_loadbalancer1[graphCounter][i]=lb.curLoad1[i]
+		}
+		graphCounter++
+		lock.Unlock()
 
 		/*fmt.Println("Req to Server1", req_sent_per_time_server1)
 		  fmt.Println("Req to Server2", req_sent_per_time_server2)
