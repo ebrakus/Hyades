@@ -297,11 +297,17 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 		for i:=0;i<oldNumServers;i++{
 			oldLoad1[lb.servers1[i]]=lb.load1[i]
-			oldLoad2[lb.servers1[i]]=lb.load2[i]
-			minLoad1=min(minLoad1,lb.load1[i])
-			minLoad2=min(minLoad2,lb.load2[i])
+			oldLoad2[lb.servers2[i]]=lb.load2[i]
+			if lb.load1[i]>0{
+				minLoad1=min(minLoad1,lb.load1[i])
+			}
+			if lb.load2[i]>0{
+				minLoad2=min(minLoad2,lb.load2[i])
+			}
 		}
 
+		fmt.Println("Initial Load matrix was:",lb.load1)
+		fmt.Println("Min Load1 was:",minLoad1)
 
 		lb.numServers = (lb.totServers / 2) / lbActive //numServers in each serverset
 		/*if (lb.totServers/2)%lbActive!=0 && (lb.totServers/2)%lbActive>myPos{
@@ -319,23 +325,28 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		lb.load1 = make([]int, lb.numServers)
 		lb.load2 = make([]int, lb.numServers)
 		
+		fmt.Println("Old Load matrix was:",oldLoad1)
 
 		for i := 0; i < lb.numServers; i++ {
 			lb.servers1[i] = strconv.Itoa(9000 + myPos*lb.numServers + i)
 			lb.servers2[i] = strconv.Itoa(9100 + myPos*lb.numServers + i)
 
-			if oldLoad1[lb.servers1[i]]==-1{
+			if oldLoad1[lb.servers1[i]]!=0{
+				fmt.Println("Old Load exists",oldLoad1[lb.servers1[i]],lb.servers1[i])
 				lb.load1[i] = oldLoad1[lb.servers1[i]]
 			}else{
+				fmt.Println("Assigning min load for:",lb.servers1[i])
 				lb.load1[i]=minLoad1
 			}
 
-			if oldLoad2[lb.servers2[i]]==-1{
+			if oldLoad2[lb.servers2[i]]!=0{
 				lb.load2[i] = oldLoad2[lb.servers2[i]]
 			}else{
 				lb.load2[i]=minLoad2
 			}
 		}
+
+		fmt.Println("Final Load matrix was:",lb.load1)
 
 		//fmt.Println("I am going to manage servers in SS1:", lb.servers1)
 		//fmt.Println("I am going to manage servers in SS2:", lb.servers2)
@@ -375,9 +386,30 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		/* Received from all alive. Send back info */
 		//fmt.Println("Sending data to all other nodes")
 
+		minLoadLB1:=0
+		minLoadLB2:=0
+
+		for i := 0; i < 10; i++ {
+			if lb.curLoad1[i]>0{
+				minLoadLB1=min(minLoadLB1,lb.curLoad1[i])
+			}
+
+			if lb.curLoad2[i]>0{
+				minLoadLB2=min(minLoadLB2,lb.curLoad2[i])
+			}
+		}
+
 		toSend.OpCode = "updateFromPrimary"
 		toSend.LbId = lb.id
 		for i := 0; i < 10; i++ {
+			if lb.curLoad1[i]==0{
+				lb.curLoad1[i]=minLoadLB1
+			}
+
+			if lb.curLoad2[i]==0{
+				lb.curLoad2[i]=minLoadLB2
+			}
+
 			toSend.CurLoad1[i] = lb.curLoad1[i]
 			toSend.CurLoad2[i] = lb.curLoad2[i]
 		}
@@ -407,9 +439,13 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 		for i:=0;i<oldNumServers;i++{
 			oldLoad1[lb.servers1[i]]=lb.load1[i]
-			oldLoad2[lb.servers1[i]]=lb.load2[i]
-			minLoad1=min(minLoad1,lb.load1[i])
-			minLoad2=min(minLoad2,lb.load2[i])
+			oldLoad2[lb.servers2[i]]=lb.load2[i]
+			if lb.load1[i]!=1{
+				minLoad1=min(minLoad1,lb.load1[i])
+			}
+			if lb.load2[i]!=1{
+				minLoad2=min(minLoad2,lb.load2[i])
+			}
 		}
 
 
@@ -434,13 +470,13 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			lb.servers1[i] = strconv.Itoa(9000 + myPos*lb.numServers + i)
 			lb.servers2[i] = strconv.Itoa(9100 + myPos*lb.numServers + i)
 
-			if oldLoad1[lb.servers1[i]]==-1{
+			if oldLoad1[lb.servers1[i]]!=0{
 				lb.load1[i] = oldLoad1[lb.servers1[i]]
 			}else{
 				lb.load1[i]=minLoad1
 			}
 
-			if oldLoad2[lb.servers2[i]]==-1{
+			if oldLoad2[lb.servers2[i]]!=0{
 				lb.load2[i] = oldLoad2[lb.servers2[i]]
 			}else{
 				lb.load2[i]=minLoad2
@@ -766,7 +802,7 @@ func min(a,b int) int{
 	}else if b==0{
 		return a
 	}else if a<b {
-		return b
+		return a
 	}else{
 		return b
 	}
