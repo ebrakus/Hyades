@@ -118,8 +118,8 @@ func (lb *LoadBalancer) Init(id int, totServers int) {
 	}
 
 
-	glb_loadbalancer1 = make([][]int,10)
-	glb_loadbalancer2 = make([][]int,10)
+	glb_loadbalancer1 = make([][]int,1000)
+	glb_loadbalancer2 = make([][]int,1000)
 	glb_server1 = make([][]int,0)
 	glb_server2 = make([][]int, 0)
 	graphCounter=0
@@ -191,7 +191,7 @@ func (lb *LoadBalancer) drawGraph() {
 	//timeInterval:=100
 	//totalTime:=5000
 	//numPeriods := totalTime/timeInterval //(5secs/100ms)
-	numPeriods := 25 //len(req_sent_per_time_server1)
+	numPeriods := 100 //len(req_sent_per_time_server1)
 
 	pts := make(plotter.XYs, numPeriods)
 	//pts2 := make(plotter.XYs, numPeriods)
@@ -902,7 +902,7 @@ func counter_poller(lb *LoadBalancer) {
 		//glb_loadbalancer2 = append(glb_loadbalancer2, lb.curLoad2)
 		//glb_server1 = append(glb_server1, lb.load1)
 		//glb_server2 = append(glb_server2, lb.load2)
-		glb_loadbalancer1[graphCounter] = make([]int, 0)
+		glb_loadbalancer1[graphCounter] = make([]int, 10)
 
 		for i:=0;i<10;i++{
 			glb_loadbalancer1[graphCounter][i]=lb.curLoad1[i]
