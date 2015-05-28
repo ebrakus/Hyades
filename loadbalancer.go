@@ -22,6 +22,10 @@ var receivedFrom []bool
 var lock sync.Mutex
 var timeOut time.Time
 
+var glb_loadbalancer []int
+var glb_server1 []int
+var glb_server2 []int
+
 type LoadBalancer struct {
 	id         int    /*Identification of load balancer*/
 	port       string /*Port it is listening on*/
@@ -109,8 +113,8 @@ func (lb *LoadBalancer) Init(id int, totServers int) {
 	go lb.findLeaderOnElection()
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
 	go lb.ServeBack()
-	//runtime.GOMAXPROCS(runtime.NumCPU() + 1)
-	//go lb.drawGraph()
+	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
+	go counter_poller(lb)
 }
 
 /*
@@ -333,24 +337,24 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			}
 		}
 
-		oldNumServers:=lb.numServers
+		oldNumServers := lb.numServers
 		var oldLoad1 map[string]int
 		var oldLoad2 map[string]int
 
 		oldLoad1 = make(map[string]int)
 		oldLoad2 = make(map[string]int)
 
-		minLoad1:=0//Change this:TODO
-		minLoad2:=0//Change this:TODO
+		minLoad1 := 0 //Change this:TODO
+		minLoad2 := 0 //Change this:TODO
 
-		for i:=0;i<oldNumServers;i++{
-			oldLoad1[lb.servers1[i]]=lb.load1[i]
-			oldLoad2[lb.servers2[i]]=lb.load2[i]
-			if lb.load1[i]>0{
-				minLoad1=min(minLoad1,lb.load1[i])
+		for i := 0; i < oldNumServers; i++ {
+			oldLoad1[lb.servers1[i]] = lb.load1[i]
+			oldLoad2[lb.servers2[i]] = lb.load2[i]
+			if lb.load1[i] > 0 {
+				minLoad1 = min(minLoad1, lb.load1[i])
 			}
-			if lb.load2[i]>0{
-				minLoad2=min(minLoad2,lb.load2[i])
+			if lb.load2[i] > 0 {
+				minLoad2 = min(minLoad2, lb.load2[i])
 			}
 		}
 
@@ -364,7 +368,6 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 		//fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
 
-
 		//fmt.Println("Old and new are:",lb.numServers,oldNumServers)
 
 		lb.servers1 = make([]string, lb.numServers)
@@ -372,25 +375,25 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 		lb.load1 = make([]int, lb.numServers)
 		lb.load2 = make([]int, lb.numServers)
-		
+
 		//fmt.Println("Old Load matrix was:",oldLoad1)
 
 		for i := 0; i < lb.numServers; i++ {
 			lb.servers1[i] = strconv.Itoa(9000 + myPos*lb.numServers + i)
 			lb.servers2[i] = strconv.Itoa(9100 + myPos*lb.numServers + i)
 
-			if oldLoad1[lb.servers1[i]]!=0{
+			if oldLoad1[lb.servers1[i]] != 0 {
 				//fmt.Println("Old Load exists",oldLoad1[lb.servers1[i]],lb.servers1[i])
 				lb.load1[i] = oldLoad1[lb.servers1[i]]
-			}else{
+			} else {
 				//fmt.Println("Assigning min load for:",lb.servers1[i])
-				lb.load1[i]=minLoad1
+				lb.load1[i] = minLoad1
 			}
 
-			if oldLoad2[lb.servers2[i]]!=0{
+			if oldLoad2[lb.servers2[i]] != 0 {
 				lb.load2[i] = oldLoad2[lb.servers2[i]]
-			}else{
-				lb.load2[i]=minLoad2
+			} else {
+				lb.load2[i] = minLoad2
 			}
 		}
 
@@ -413,8 +416,8 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		fmt.Println()
 		fmt.Println("Load on different Loadbalancers' ServerSet1", toSend.CurLoad1)
 		fmt.Println("Load on different Loadbalancers' ServerSet2", toSend.CurLoad2)
-		fmt.Println("Load on this Loadbalancers' ServerSet1:",lb.load1)
-		fmt.Println("Load on this Loadbalancers' ServerSet2:",lb.load2)
+		fmt.Println("Load on this Loadbalancers' ServerSet1:", lb.load1)
+		fmt.Println("Load on this Loadbalancers' ServerSet2:", lb.load2)
 		fmt.Println()
 		//fmt.Println("ALIVE matrix", lb.aliveLB)
 	case "healthCheck":
@@ -434,28 +437,28 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		/* Received from all alive. Send back info */
 		//fmt.Println("Sending data to all other nodes")
 
-		minLoadLB1:=0
-		minLoadLB2:=0
+		minLoadLB1 := 0
+		minLoadLB2 := 0
 
 		for i := 0; i < 10; i++ {
-			if lb.curLoad1[i]>0{
-				minLoadLB1=min(minLoadLB1,lb.curLoad1[i])
+			if lb.curLoad1[i] > 0 {
+				minLoadLB1 = min(minLoadLB1, lb.curLoad1[i])
 			}
 
-			if lb.curLoad2[i]>0{
-				minLoadLB2=min(minLoadLB2,lb.curLoad2[i])
+			if lb.curLoad2[i] > 0 {
+				minLoadLB2 = min(minLoadLB2, lb.curLoad2[i])
 			}
 		}
 
 		toSend.OpCode = "updateFromPrimary"
 		toSend.LbId = lb.id
 		for i := 0; i < 10; i++ {
-			if lb.curLoad1[i]==0{
-				lb.curLoad1[i]=minLoadLB1
+			if lb.curLoad1[i] == 0 {
+				lb.curLoad1[i] = minLoadLB1
 			}
 
-			if lb.curLoad2[i]==0{
-				lb.curLoad2[i]=minLoadLB2
+			if lb.curLoad2[i] == 0 {
+				lb.curLoad2[i] = minLoadLB2
 			}
 
 			toSend.CurLoad1[i] = lb.curLoad1[i]
@@ -475,27 +478,26 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 			}
 		}
 
-		oldNumServers:=lb.numServers
+		oldNumServers := lb.numServers
 		var oldLoad1 map[string]int
 		var oldLoad2 map[string]int
 
 		oldLoad1 = make(map[string]int)
 		oldLoad2 = make(map[string]int)
 
-		minLoad1:=0//Change this:TODO
-		minLoad2:=0//Change this:TODO
+		minLoad1 := 0 //Change this:TODO
+		minLoad2 := 0 //Change this:TODO
 
-		for i:=0;i<oldNumServers;i++{
-			oldLoad1[lb.servers1[i]]=lb.load1[i]
-			oldLoad2[lb.servers2[i]]=lb.load2[i]
-			if lb.load1[i]!=1{
-				minLoad1=min(minLoad1,lb.load1[i])
+		for i := 0; i < oldNumServers; i++ {
+			oldLoad1[lb.servers1[i]] = lb.load1[i]
+			oldLoad2[lb.servers2[i]] = lb.load2[i]
+			if lb.load1[i] != 1 {
+				minLoad1 = min(minLoad1, lb.load1[i])
 			}
-			if lb.load2[i]!=1{
-				minLoad2=min(minLoad2,lb.load2[i])
+			if lb.load2[i] != 1 {
+				minLoad2 = min(minLoad2, lb.load2[i])
 			}
 		}
-
 
 		lb.numServers = (lb.totServers / 2) / lbActive //numServers in each serverset
 		/*if (lb.totServers/2)%lbActive!=0 && (lb.totServers/2)%lbActive>myPos{
@@ -504,7 +506,6 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 		//fmt.Println("Total servers, lbActive and lb.numServers", lb.totServers, lbActive, lb.numServers)
 
-
 		//fmt.Println("Old and new are:",lb.numServers,oldNumServers)
 
 		lb.servers1 = make([]string, lb.numServers)
@@ -512,22 +513,21 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 
 		lb.load1 = make([]int, lb.numServers)
 		lb.load2 = make([]int, lb.numServers)
-		
 
 		for i := 0; i < lb.numServers; i++ {
 			lb.servers1[i] = strconv.Itoa(9000 + myPos*lb.numServers + i)
 			lb.servers2[i] = strconv.Itoa(9100 + myPos*lb.numServers + i)
 
-			if oldLoad1[lb.servers1[i]]!=0{
+			if oldLoad1[lb.servers1[i]] != 0 {
 				lb.load1[i] = oldLoad1[lb.servers1[i]]
-			}else{
-				lb.load1[i]=minLoad1
+			} else {
+				lb.load1[i] = minLoad1
 			}
 
-			if oldLoad2[lb.servers2[i]]!=0{
+			if oldLoad2[lb.servers2[i]] != 0 {
 				lb.load2[i] = oldLoad2[lb.servers2[i]]
-			}else{
-				lb.load2[i]=minLoad2
+			} else {
+				lb.load2[i] = minLoad2
 			}
 		}
 
@@ -548,11 +548,9 @@ func (lb *LoadBalancer) NewMessage(in []byte, n *int) error {
 		fmt.Println()
 		fmt.Println("Load on different Loadbalancers' ServerSet1", toSend.CurLoad1)
 		fmt.Println("Load on different Loadbalancers' ServerSet2", toSend.CurLoad2)
-		fmt.Println("Load on this Loadbalancers' ServerSet1:",lb.load1)
-		fmt.Println("Load on this Loadbalancers' ServerSet2:",lb.load2)
+		fmt.Println("Load on this Loadbalancers' ServerSet1:", lb.load1)
+		fmt.Println("Load on this Loadbalancers' ServerSet2:", lb.load2)
 		fmt.Println()
-
-
 
 		//fmt.Println("I am going to manage servers in SS1:", lb.servers1)
 		//fmt.Println("I am going to manage servers in SS2:", lb.servers2)
@@ -841,20 +839,31 @@ func (lb *LoadBalancer) findLeaderOnElection() {
 
 }
 
-
-func min(a,b int) int{
-	if a==0 && b==0{
+func min(a, b int) int {
+	if a == 0 && b == 0 {
 		return 0
-	}else if a==0 {
+	} else if a == 0 {
 		return b
-	}else if b==0{
+	} else if b == 0 {
 		return a
-	}else if a<b {
+	} else if a < b {
 		return a
-	}else{
+	} else {
 		return b
 	}
 }
 
+func counter_poller(lb *LoadBalancer) {
+	for {
+		time.Sleep(time.Millisecond * 5)
+		glb_loadbalancer1 = append(glb_loadbalancer, lb.curLoad1)
+		glb_loadbalancer2 = append(glb_loadbalancer, lb.curLoad2)
+		glb_server1 = append(glb_server1, lb.load1)
+		glb_server2 = append(glb_server2, lb.load2)
 
-
+		/*fmt.Println("Req to Server1", req_sent_per_time_server1)
+		  fmt.Println("Req to Server2", req_sent_per_time_server2)
+		  fmt.Println("Reply from Server1", reply_recv_per_time_server1)
+		  fmt.Println("Reply from Server2", reply_recv_per_time_server2)*/
+	}
+}
