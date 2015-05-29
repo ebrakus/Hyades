@@ -229,20 +229,21 @@ func (lb *LoadBalancer) drawGraph() {
 	}
 
 	p.Title.Text = "Load Balancer"
-	p.X.Label.Text = "Time(s)"
+	p.X.Label.Text = "Time [1 unit is 0.1 seconds]"
 	p.Y.Label.Text = "Load Balancer Requests"
 
-	numPeriods := 400
+	numPeriods := 500
 	pts := make(plotter.XYs, numPeriods)
 
 	p.Add(plotter.NewGrid())
 
-	fmt.Println("Load Balancer loads are ................\n", glb_loadbalancer1)
-	for i := 0; i < 10; i++ {
-		temp := i + 1
-		for j := 0; j < numPeriods; j++ {
+    
+    fmt.Println("Load Balancer loads are ................\n",glb_loadbalancer1)
+	for i:=0;i<10;i++{
+		temp:=i+1
+		for j :=0;j<numPeriods;j++ {
 			pts[j].X = float64(1 * j)
-			pts[j].Y = float64(glb_loadbalancer1[j+100][i])
+			pts[j].Y = float64(glb_loadbalancer1[j+50][i])
 		}
 		tempS := "LB" + strconv.Itoa(temp)
 		l, err := plotter.NewLine(pts)
@@ -274,10 +275,10 @@ func (lb *LoadBalancer) drawGraph() {
 	}
 
 	p.Title.Text = "Server Set 1"
-	p.X.Label.Text = "Time(s)"
+	p.X.Label.Text = "Time [1 unit is 0.1 seconds]"
 	p.Y.Label.Text = "Server Set Requests"
 
-	numPeriods = 400
+	numPeriods = 500
 	pts = make(plotter.XYs, numPeriods)
 
 	p.Add(plotter.NewGrid())
@@ -287,7 +288,7 @@ func (lb *LoadBalancer) drawGraph() {
 		temp := i + 1
 		for j := 0; j < numPeriods; j++ {
 			pts[j].X = float64(1 * j)
-			pts[j].Y = float64(glb_server1[j+100][i])
+			pts[j].Y = float64(glb_server1[j+50][i])
 		}
 		tempS := "Server" + strconv.Itoa(temp)
 		l, err := plotter.NewLine(pts)
@@ -989,9 +990,10 @@ func counter_poller(lb *LoadBalancer) {
 		lock.Lock()
 
 		diff := time.Now().Sub(timeSpike)
-		if diff.Seconds() > 10 && flag == 0 { //TODO: Find a timeout
-			lb.curLoad1[lb.id] += lb.load1[0]
-			lb.load1[0] = 2 * lb.load1[0]
+		if diff.Seconds() > 15 && flag == 0 && lb.id==lb.primary{ //TODO: Find a timeout
+			fmt.Println("Lbid and primary is",lb.id,lb.primary)
+			lb.curLoad1[lb.id] += 3 *lb.load1[0]
+			lb.load1[0] = 4 * lb.load1[0]
 			fmt.Println("******************************")
 			fmt.Println("SPIKING***********************")
 			fmt.Println("******************************")

@@ -41,7 +41,6 @@ func temp(server string, count *int, n int) {
 	req.Header.Set("Connection", "close")
 	req.Close = true
 	resp, err := httpClient.Do(req)
-	defer resp.Body.Close()
 
 	if err != nil {
 		fmt.Println("not working")
@@ -70,11 +69,11 @@ func main() {
 	reply_recv_server2 = make([]int, number)
 
 	//Have to remove below : TODO
-	/*reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
 	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
 	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
 	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
-	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)*/
+	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
+	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
 
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
 	go counter_poller(number)
@@ -117,15 +116,15 @@ func main() {
 	}
 
 	p.Title.Text = "Client "
-	p.X.Label.Text = "Time(seonds)"
+	p.X.Label.Text = "Time [1 unit is 0.1 seconds]"
 	p.Y.Label.Text = "Number of Request/Response"
 
 	numPeriods:=100
 	pts1 := make(plotter.XYs, numPeriods)
 	pts2 := make(plotter.XYs, numPeriods)
 	for i := range pts1 {
-		pts1[i].X = float64(1 * i/10)
-		pts2[i].X = float64(1 * i/10)
+		pts1[i].X = float64(1 * i)
+		pts2[i].X = float64(1 * i)
 
 		pts1[i].Y = float64(req_sent_per_time_server1[i])
 		pts2[i].Y = float64(reply_recv_per_time_server1[i])
