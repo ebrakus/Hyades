@@ -36,7 +36,6 @@ var glb_server1 [][]int
 var glb_server2 [][]int
 var graphCounter int
 
-var timeSpike time.Time
 
 type LoadBalancer struct {
 	id         int    /*Identification of load balancer*/
@@ -284,7 +283,7 @@ func (lb *LoadBalancer) drawGraph() {
 	p.Add(plotter.NewGrid())
 
 	fmt.Println("Serverloads are ................\n", glb_server1)
-	for i := 0; i < 10; i++ {
+	for i := 0; i <10; i++ {
 		temp := i + 1
 		for j := 0; j < numPeriods; j++ {
 			pts[j].X = float64(1 * j)
@@ -980,8 +979,7 @@ func min(a, b int) int {
 }
 
 func counter_poller(lb *LoadBalancer) {
-	timeSpike = time.Now()
-	flag := 0
+
 	for {
 		if graphCounter > (1000 - 1) {
 			break
@@ -989,17 +987,7 @@ func counter_poller(lb *LoadBalancer) {
 		time.Sleep(time.Millisecond * 100)
 		lock.Lock()
 
-		diff := time.Now().Sub(timeSpike)
-		if diff.Seconds() > 15 && flag == 0 && lb.id==lb.primary{ //TODO: Find a timeout
-			fmt.Println("Lbid and primary is",lb.id,lb.primary)
-			lb.curLoad1[lb.id] *= 3
-			//lb.load1[0] = 2 * lb.load1[0]
-			fmt.Println("******************************")
-			fmt.Println("SPIKING***********************")
-			fmt.Println("******************************")
-			flag = 1
-		}
-
+		
 		//glb_loadbalancer1 = append(glb_loadbalancer1, lb.curLoad1)
 		//glb_loadbalancer2 = append(glb_loadbalancer2, lb.curLoad2)
 		//glb_server1 = append(glb_server1, lb.load1)
