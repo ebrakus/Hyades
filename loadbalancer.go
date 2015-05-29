@@ -229,9 +229,9 @@ func (lb *LoadBalancer) drawGraph() {
 		panic(err)
 	}
 
-	p.Title.Text = "Load balancer Graph"
-	p.X.Label.Text = "Time"
-	p.Y.Label.Text = "Load Balancer Request"
+	p.Title.Text = "Load Balancer"
+	p.X.Label.Text = "Time(s)"
+	p.Y.Label.Text = "Load Balancer Requests"
 
 	numPeriods := 120 
 	pts := make(plotter.XYs, numPeriods)
@@ -243,7 +243,7 @@ func (lb *LoadBalancer) drawGraph() {
 	for i:=0;i<10;i++{
 		temp:=i+1
 		for j :=0;j<numPeriods;j++ {
-			pts[j].X = float64(1 * j)
+			pts[j].X = float64(1 * j/10)
 			pts[j].Y = float64(glb_loadbalancer1[j+50][i])
 		}
 		tempS:= "LB" + strconv.Itoa(temp) 
@@ -258,22 +258,25 @@ func (lb *LoadBalancer) drawGraph() {
    		l.LineStyle.Color = color.RGBA{R:red,G:green,B:blue,A:255}
    		p.Add(l)
     	p.Legend.Add(tempS, l)
+    	p.Legend.ThumbnailWidth = 10
 	}
 
     // Save the plot to a PNG file.
-    if err := p.Save(16*vg.Inch, 16*vg.Inch, image_file_lb); err != nil {
+    if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_lb); err != nil {
         panic(err)
     }
 
-
+    if err := p.Save(16*vg.Inch, 16*vg.Inch, "high_res_"+image_file_lb); err != nil {
+        panic(err)
+    }
 
     p, err = plot.New()
 	if err != nil {
 		panic(err)
 	}
 
-	p.Title.Text = "Server Set 1Graph"
-	p.X.Label.Text = "Time"
+	p.Title.Text = "Server Set 1"
+	p.X.Label.Text = "Time(s)"
 	p.Y.Label.Text = "Server Set Requests"
 
 	numPeriods = 500 
@@ -304,11 +307,13 @@ func (lb *LoadBalancer) drawGraph() {
 	}
 
     // Save the plot to a PNG file.
-    if err := p.Save(16*vg.Inch, 16*vg.Inch, image_file_servers); err != nil {
+    if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_servers); err != nil {
         panic(err)
     }
 
-
+    if err := p.Save(16*vg.Inch, 16*vg.Inch, "high_res_"+image_file_servers); err != nil {
+        panic(err)
+    }
 
 
 	lock.Unlock()

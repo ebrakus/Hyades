@@ -41,6 +41,7 @@ func temp(server string, count *int, n int) {
 	req.Header.Set("Connection", "close")
 	req.Close = true
 	resp, err := httpClient.Do(req)
+	defer resp.Body.Close()
 
 	if err != nil {
 		fmt.Println("not working")
@@ -69,11 +70,11 @@ func main() {
 	reply_recv_server2 = make([]int, number)
 
 	//Have to remove below : TODO
+	/*reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
 	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
 	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
 	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
-	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
-	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)
+	reply_recv_per_time_server1 = append(reply_recv_per_time_server1 ,0)*/
 
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
 	go counter_poller(number)
@@ -115,16 +116,16 @@ func main() {
 		panic(err)
 	}
 
-	p.Title.Text = "Client Request and Response Rate "
-	p.X.Label.Text = "Time"
-	p.Y.Label.Text = "Number"
+	p.Title.Text = "Client "
+	p.X.Label.Text = "Time(seonds)"
+	p.Y.Label.Text = "Number of Request/Response"
 
 	numPeriods:=100
 	pts1 := make(plotter.XYs, numPeriods)
 	pts2 := make(plotter.XYs, numPeriods)
 	for i := range pts1 {
-		pts1[i].X = float64(1 * i)
-		pts2[i].X = float64(1 * i)
+		pts1[i].X = float64(1 * i/10)
+		pts2[i].X = float64(1 * i/10)
 
 		pts1[i].Y = float64(req_sent_per_time_server1[i])
 		pts2[i].Y = float64(reply_recv_per_time_server1[i])
@@ -162,10 +163,13 @@ func main() {
 
 
     // Save the plot to a PNG file.
-    if err := p.Save(16*vg.Inch, 16*vg.Inch, image_file); err != nil {
+    if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file); err != nil {
         panic(err)
     }
 
+    if err := p.Save(16*vg.Inch, 16*vg.Inch, "high_res_" + image_file); err != nil {
+        panic(err)
+    }
 
 
 	//fmt.Println("Req to Server1", req_sent_per_time_server1)
