@@ -138,7 +138,7 @@ func main() {
         panic(err)
     }
     l.LineStyle.Width = vg.Points(1)
-    l.LineStyle.Color = color.RGBA{R:0,G:255,B: 255}
+    l.LineStyle.Color = color.RGBA{R:255,G:0,B: 255,A:0}
 
     
     p.Add(l)
@@ -153,7 +153,7 @@ func main() {
         panic(err)
     }
     l2.LineStyle.Width = vg.Points(1)
-    l2.LineStyle.Color = color.RGBA{R:255,G: 255,B:0}
+    l2.LineStyle.Color = color.RGBA{R:0,G: 255,B:255,A:0}
 
     
     p.Add(l2)

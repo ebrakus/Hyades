@@ -22,6 +22,8 @@ import (
 	"image/color"
 )
 
+
+var R,G,B [10]uint8
 var receivedFrom []bool
 var lock sync.Mutex
 var timeOut time.Time
@@ -118,11 +120,51 @@ func (lb *LoadBalancer) Init(id int, totServers int) {
 	}
 
 
-	glb_loadbalancer1 = make([][]int,10000)
-	glb_loadbalancer2 = make([][]int,10000)
+	glb_loadbalancer1 = make([][]int,1000)
+	glb_loadbalancer2 = make([][]int,1000)
 	glb_server1 = make([][]int,0)
 	glb_server2 = make([][]int, 0)
 	graphCounter=0
+
+	R[0] = 255
+	G[0] = 0
+	B[0] = 0
+
+	R[6] = 255
+	G[6] = 128
+	B[6] = 0
+
+	R[3] = 255
+	G[3] = 255
+	B[3] = 0
+
+	R[2] = 0
+	G[2] = 153
+	B[2] = 0
+
+	R[1] = 51
+	G[1] = 153
+	B[1] = 255
+
+	R[4] = 0
+	G[4] = 0
+	B[4] = 153
+
+	R[5] = 255
+	G[5] = 0
+	B[5] = 255
+
+	R[7] = 128
+	G[7] = 128
+	B[7] = 128
+
+	R[8] = 0
+	G[8] = 0
+	B[8] = 0
+
+	R[9] = 153
+	G[9] = 0
+	B[9] = 76
 
 	runtime.GOMAXPROCS(runtime.NumCPU() + 1)
 	go lb.findLeaderOnElection()
@@ -189,7 +231,7 @@ func (lb *LoadBalancer) drawGraph() {
 	p.X.Label.Text = "Time"
 	p.Y.Label.Text = "Load Balancer Request"
 
-	numPeriods := 100 
+	numPeriods := 120 
 	pts := make(plotter.XYs, numPeriods)
 
 	p.Add(plotter.NewGrid())
@@ -200,17 +242,17 @@ func (lb *LoadBalancer) drawGraph() {
 		temp:=i+1
 		for j :=0;j<numPeriods;j++ {
 			pts[j].X = float64(1 * j)
-			pts[j].Y = float64(glb_loadbalancer1[j][i])
+			pts[j].Y = float64(glb_loadbalancer1[j+50][i])
 		}
-		tempS:= "Load Balancer" + strconv.Itoa(temp) + "Requests"
+		tempS:= "LB" + strconv.Itoa(temp) 
 		l, err := plotter.NewLine(pts)
 		if err!=nil{
 			fmt.Println("Error in plotting")
 		}
 		l.LineStyle.Width = vg.Points(1)
-		red:=uint8(50*(i+1))
-		green:=uint8(40*(i+1))
-		blue:=uint8(35*(i+1))
+		red:=R[i]
+		green:=G[i]
+		blue:=B[i]
    		l.LineStyle.Color = color.RGBA{R:red,G:green,B:blue,A:255}
    		p.Add(l)
     	p.Legend.Add(tempS, l)
@@ -879,6 +921,9 @@ func min(a, b int) int {
 
 func counter_poller(lb *LoadBalancer) {
 	for {
+		if graphCounter>1000{
+			break
+		}
 		time.Sleep(time.Millisecond * 100)
 		lock.Lock()
 		//glb_loadbalancer1 = append(glb_loadbalancer1, lb.curLoad1)
