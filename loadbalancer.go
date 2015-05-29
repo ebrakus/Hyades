@@ -6,7 +6,9 @@ import (
 	"github.com/gonum/plot"
 	"github.com/gonum/plot/plotter"
 	"github.com/gonum/plot/vg"
+	"image/color"
 	"log"
+	"math"
 	"math/rand"
 	"net"
 	"net/http"
@@ -19,12 +21,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"image/color"
-	"math"
 )
 
-
-var R,G,B [10]uint8
+var R, G, B [10]uint8
 var receivedFrom []bool
 var lock sync.Mutex
 var timeOut time.Time
@@ -36,6 +35,8 @@ var glb_loadbalancer2 [][]int
 var glb_server1 [][]int
 var glb_server2 [][]int
 var graphCounter int
+
+var timeSpike time.Time
 
 type LoadBalancer struct {
 	id         int    /*Identification of load balancer*/
@@ -70,7 +71,6 @@ type jsonMessagePrimary struct {
 }
 
 func (lb *LoadBalancer) Init(id int, totServers int) {
-
 
 	lb.id = id
 	lb.totServers = totServers
@@ -121,12 +121,11 @@ func (lb *LoadBalancer) Init(id int, totServers int) {
 		}
 	}
 
-
-	glb_loadbalancer1 = make([][]int,1000)
-	glb_loadbalancer2 = make([][]int,1000)
-	glb_server1 = make([][]int,1000)
-	glb_server2 = make([][]int,1000)
-	graphCounter=0
+	glb_loadbalancer1 = make([][]int, 1000)
+	glb_loadbalancer2 = make([][]int, 1000)
+	glb_server1 = make([][]int, 1000)
+	glb_server2 = make([][]int, 1000)
+	graphCounter = 0
 
 	R[0] = 255
 	G[0] = 0
@@ -233,44 +232,43 @@ func (lb *LoadBalancer) drawGraph() {
 	p.X.Label.Text = "Time(s)"
 	p.Y.Label.Text = "Load Balancer Requests"
 
-	numPeriods := 120 
+	numPeriods := 400
 	pts := make(plotter.XYs, numPeriods)
 
 	p.Add(plotter.NewGrid())
 
-    
-    fmt.Println("Load Balancer loads are ................\n",glb_loadbalancer1)
-	for i:=0;i<10;i++{
-		temp:=i+1
-		for j :=0;j<numPeriods;j++ {
-			pts[j].X = float64(1 * j/10)
-			pts[j].Y = float64(glb_loadbalancer1[j+50][i])
+	fmt.Println("Load Balancer loads are ................\n", glb_loadbalancer1)
+	for i := 0; i < 10; i++ {
+		temp := i + 1
+		for j := 0; j < numPeriods; j++ {
+			pts[j].X = float64(1 * j)
+			pts[j].Y = float64(glb_loadbalancer1[j+100][i])
 		}
-		tempS:= "LB" + strconv.Itoa(temp) 
+		tempS := "LB" + strconv.Itoa(temp)
 		l, err := plotter.NewLine(pts)
-		if err!=nil{
+		if err != nil {
 			fmt.Println("Error in plotting")
 		}
 		l.LineStyle.Width = vg.Points(1)
-		red:=R[i]
-		green:=G[i]
-		blue:=B[i]
-   		l.LineStyle.Color = color.RGBA{R:red,G:green,B:blue,A:255}
-   		p.Add(l)
-    	p.Legend.Add(tempS, l)
-    	p.Legend.ThumbnailWidth = 10
+		red := R[i]
+		green := G[i]
+		blue := B[i]
+		l.LineStyle.Color = color.RGBA{R: red, G: green, B: blue, A: 255}
+		p.Add(l)
+		p.Legend.Add(tempS, l)
+		p.Legend.ThumbnailWidth = 10
 	}
 
-    // Save the plot to a PNG file.
-    if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_lb); err != nil {
-        panic(err)
-    }
+	// Save the plot to a PNG file.
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_lb); err != nil {
+		panic(err)
+	}
 
-    if err := p.Save(16*vg.Inch, 16*vg.Inch, "high_res_"+image_file_lb); err != nil {
-        panic(err)
-    }
+	if err := p.Save(16*vg.Inch, 16*vg.Inch, "high_res_"+image_file_lb); err != nil {
+		panic(err)
+	}
 
-    p, err = plot.New()
+	p, err = plot.New()
 	if err != nil {
 		panic(err)
 	}
@@ -279,42 +277,40 @@ func (lb *LoadBalancer) drawGraph() {
 	p.X.Label.Text = "Time(s)"
 	p.Y.Label.Text = "Server Set Requests"
 
-	numPeriods = 500 
+	numPeriods = 400
 	pts = make(plotter.XYs, numPeriods)
 
 	p.Add(plotter.NewGrid())
 
-    
-    fmt.Println("Serverloads are ................\n",glb_server1)
-	for i:=0;i<10;i++{
-		temp:=i+1
-		for j :=0;j<numPeriods;j++ {
+	fmt.Println("Serverloads are ................\n", glb_server1)
+	for i := 0; i < 10; i++ {
+		temp := i + 1
+		for j := 0; j < numPeriods; j++ {
 			pts[j].X = float64(1 * j)
-			pts[j].Y = float64(glb_server1[j+50][i])
+			pts[j].Y = float64(glb_server1[j+100][i])
 		}
-		tempS:= "Server" + strconv.Itoa(temp) 
+		tempS := "Server" + strconv.Itoa(temp)
 		l, err := plotter.NewLine(pts)
-		if err!=nil{
+		if err != nil {
 			fmt.Println("Error in plotting")
 		}
 		l.LineStyle.Width = vg.Points(1)
-		red:=R[i]
-		green:=G[i]
-		blue:=B[i]
-   		l.LineStyle.Color = color.RGBA{R:red,G:green,B:blue,A:255}
-   		p.Add(l)
-    	p.Legend.Add(tempS, l)
+		red := R[i]
+		green := G[i]
+		blue := B[i]
+		l.LineStyle.Color = color.RGBA{R: red, G: green, B: blue, A: 255}
+		p.Add(l)
+		p.Legend.Add(tempS, l)
 	}
 
-    // Save the plot to a PNG file.
-    if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_servers); err != nil {
-        panic(err)
-    }
+	// Save the plot to a PNG file.
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_servers); err != nil {
+		panic(err)
+	}
 
-    if err := p.Save(16*vg.Inch, 16*vg.Inch, "high_res_"+image_file_servers); err != nil {
-        panic(err)
-    }
-
+	if err := p.Save(16*vg.Inch, 16*vg.Inch, "high_res_"+image_file_servers); err != nil {
+		panic(err)
+	}
 
 	lock.Unlock()
 
@@ -819,17 +815,17 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 	count := 0
 	//fmt.Println("Load Matrix is :", (*val))
 
-	mini:=0
+	mini := 0
 
 	for i := 0; i < n; i++ {
 		if (*val)[i] != -1 {
-			mini= min(mini,(*val)[i])
+			mini = min(mini, (*val)[i])
 		}
 	}
 
 	for i := 0; i < n; i++ {
 		if (*val)[i] != -1 {
-			sum += int(math.Pow(float64((*val)[i]-mini),3))
+			sum += int(math.Pow(float64((*val)[i]-mini), 3))
 			count++
 		}
 	}
@@ -850,7 +846,7 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 	for i = 0; i < n; i++ {
 
 		if (*val)[i] != -1 {
-			temp = temp + (sum - int(math.Pow(float64((*val)[i]-mini),3)))
+			temp = temp + (sum - int(math.Pow(float64((*val)[i]-mini), 3)))
 		}
 		if temp > r {
 			break
@@ -983,12 +979,25 @@ func min(a, b int) int {
 }
 
 func counter_poller(lb *LoadBalancer) {
+	timeSpike = time.Now()
+	flag := 0
 	for {
-		if graphCounter>(1000-1){
+		if graphCounter > (1000 - 1) {
 			break
 		}
 		time.Sleep(time.Millisecond * 100)
 		lock.Lock()
+
+		diff := time.Now().Sub(timeSpike)
+		if diff.Seconds() > 10 && flag == 0 { //TODO: Find a timeout
+			lb.curLoad1[lb.id] += lb.load1[0]
+			lb.load1[0] = 2 * lb.load1[0]
+			fmt.Println("******************************")
+			fmt.Println("SPIKING***********************")
+			fmt.Println("******************************")
+			flag = 1
+		}
+
 		//glb_loadbalancer1 = append(glb_loadbalancer1, lb.curLoad1)
 		//glb_loadbalancer2 = append(glb_loadbalancer2, lb.curLoad2)
 		//glb_server1 = append(glb_server1, lb.load1)
@@ -996,14 +1005,14 @@ func counter_poller(lb *LoadBalancer) {
 		glb_loadbalancer1[graphCounter] = make([]int, 10)
 		glb_server1[graphCounter] = make([]int, 10)
 
-		for i:=0;i<10;i++{
-			glb_loadbalancer1[graphCounter][i]=lb.curLoad1[i]
-			if len(lb.load1)>=10{
-				glb_server1[graphCounter][i]=lb.load1[i]
-			}else{
-				glb_server1[graphCounter][i]=0
+		for i := 0; i < 10; i++ {
+			glb_loadbalancer1[graphCounter][i] = lb.curLoad1[i]
+			if len(lb.load1) >= 10 {
+				glb_server1[graphCounter][i] = lb.load1[i]
+			} else {
+				glb_server1[graphCounter][i] = 0
 			}
-			
+
 		}
 		graphCounter++
 		lock.Unlock()
