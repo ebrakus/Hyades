@@ -261,7 +261,7 @@ func (lb *LoadBalancer) drawGraph() {
 	}
 
     // Save the plot to a PNG file.
-    if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_lb); err != nil {
+    if err := p.Save(16*vg.Inch, 16*vg.Inch, image_file_lb); err != nil {
         panic(err)
     }
 
@@ -304,7 +304,7 @@ func (lb *LoadBalancer) drawGraph() {
 	}
 
     // Save the plot to a PNG file.
-    if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_servers); err != nil {
+    if err := p.Save(16*vg.Inch, 16*vg.Inch, image_file_servers); err != nil {
         panic(err)
     }
 
