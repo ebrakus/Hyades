@@ -232,7 +232,7 @@ func (lb *LoadBalancer) drawGraph() {
 	p.X.Label.Text = "Time [1 unit is 0.1 seconds]"
 	p.Y.Label.Text = "Load Balancer Requests"
 
-	numPeriods := 500
+	numPeriods := 200
 	pts := make(plotter.XYs, numPeriods)
 
 	p.Add(plotter.NewGrid())
@@ -992,8 +992,8 @@ func counter_poller(lb *LoadBalancer) {
 		diff := time.Now().Sub(timeSpike)
 		if diff.Seconds() > 15 && flag == 0 && lb.id==lb.primary{ //TODO: Find a timeout
 			fmt.Println("Lbid and primary is",lb.id,lb.primary)
-			lb.curLoad1[lb.id] += 3 *lb.load1[0]
-			lb.load1[0] = 4 * lb.load1[0]
+			lb.curLoad1[lb.id] *= 3
+			//lb.load1[0] = 2 * lb.load1[0]
 			fmt.Println("******************************")
 			fmt.Println("SPIKING***********************")
 			fmt.Println("******************************")
