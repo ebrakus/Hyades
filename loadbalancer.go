@@ -813,9 +813,18 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 	sum := 0
 	count := 0
 	//fmt.Println("Load Matrix is :", (*val))
+
+	mini:=0
+
 	for i := 0; i < n; i++ {
 		if (*val)[i] != -1 {
-			sum += int(math.Pow(float64((*val)[i]),3))
+			mini= min(mini,(*val)[i])
+		}
+	}
+
+	for i := 0; i < n; i++ {
+		if (*val)[i] != -1 {
+			sum += int(math.Pow(float64((*val)[i]-mini),3))
 			count++
 		}
 	}
@@ -824,7 +833,7 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 		return lb.id
 	}
 	sum2 := (count - 1) * sum
-	if sum2 == 0 {
+	if sum2 <= 0 {
 		return lb.id
 	}
 
@@ -836,7 +845,7 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 	for i = 0; i < n; i++ {
 
 		if (*val)[i] != -1 {
-			temp = temp + (sum - int(math.Pow(float64((*val)[i]),3)))
+			temp = temp + (sum - int(math.Pow(float64((*val)[i]-mini),3)))
 		}
 		if temp > r {
 			break
