@@ -70,6 +70,7 @@ type jsonMessagePrimary struct {
 
 func (lb *LoadBalancer) Init(id int, totServers int) {
 
+
 	lb.id = id
 	lb.totServers = totServers
 
@@ -826,6 +827,7 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 		return lb.id
 	}
 
+	rand.Seed( time.Now().UTC().UnixNano())
 	r := rand.Intn(sum2)
 	//fmt.Println("Random value is :", r)
 	temp := 0
