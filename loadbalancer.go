@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 	"image/color"
+	"math"
 )
 
 
@@ -814,7 +815,7 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 	//fmt.Println("Load Matrix is :", (*val))
 	for i := 0; i < n; i++ {
 		if (*val)[i] != -1 {
-			sum += (*val)[i]
+			sum += int(math.Pow(float64((*val)[i]),3))
 			count++
 		}
 	}
@@ -827,7 +828,7 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 		return lb.id
 	}
 
-	rand.Seed( time.Now().UTC().UnixNano())
+	//rand.Seed( time.Now().UTC().UnixNano())
 	r := rand.Intn(sum2)
 	//fmt.Println("Random value is :", r)
 	temp := 0
@@ -835,7 +836,7 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 	for i = 0; i < n; i++ {
 
 		if (*val)[i] != -1 {
-			temp = temp + (sum - (*val)[i])
+			temp = temp + (sum - int(math.Pow(float64((*val)[i]),3)))
 		}
 		if temp > r {
 			break
