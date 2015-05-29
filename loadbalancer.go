@@ -122,8 +122,8 @@ func (lb *LoadBalancer) Init(id int, totServers int) {
 
 	glb_loadbalancer1 = make([][]int,1000)
 	glb_loadbalancer2 = make([][]int,1000)
-	glb_server1 = make([][]int,0)
-	glb_server2 = make([][]int, 0)
+	glb_server1 = make([][]int,1000)
+	glb_server2 = make([][]int,1000)
 	graphCounter=0
 
 	R[0] = 255
@@ -219,7 +219,7 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 
 func (lb *LoadBalancer) drawGraph() {
 
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 60)
 	lock.Lock()
 
 	p, err := plot.New()
@@ -262,6 +262,52 @@ func (lb *LoadBalancer) drawGraph() {
     if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_lb); err != nil {
         panic(err)
     }
+
+
+
+    p, err = plot.New()
+	if err != nil {
+		panic(err)
+	}
+
+	p.Title.Text = "Server Set 1Graph"
+	p.X.Label.Text = "Time"
+	p.Y.Label.Text = "Server Set Requests"
+
+	numPeriods = 500 
+	pts = make(plotter.XYs, numPeriods)
+
+	p.Add(plotter.NewGrid())
+
+    
+    fmt.Println("Serverloads are ................\n",glb_server1)
+	for i:=0;i<10;i++{
+		temp:=i+1
+		for j :=0;j<numPeriods;j++ {
+			pts[j].X = float64(1 * j)
+			pts[j].Y = float64(glb_server1[j+50][i])
+		}
+		tempS:= "Server" + strconv.Itoa(temp) 
+		l, err := plotter.NewLine(pts)
+		if err!=nil{
+			fmt.Println("Error in plotting")
+		}
+		l.LineStyle.Width = vg.Points(1)
+		red:=R[i]
+		green:=G[i]
+		blue:=B[i]
+   		l.LineStyle.Color = color.RGBA{R:red,G:green,B:blue,A:255}
+   		p.Add(l)
+    	p.Legend.Add(tempS, l)
+	}
+
+    // Save the plot to a PNG file.
+    if err := p.Save(4*vg.Inch, 4*vg.Inch, image_file_servers); err != nil {
+        panic(err)
+    }
+
+
+
 
 	lock.Unlock()
 
@@ -921,7 +967,7 @@ func min(a, b int) int {
 
 func counter_poller(lb *LoadBalancer) {
 	for {
-		if graphCounter>1000{
+		if graphCounter>(1000-1){
 			break
 		}
 		time.Sleep(time.Millisecond * 100)
@@ -931,9 +977,16 @@ func counter_poller(lb *LoadBalancer) {
 		//glb_server1 = append(glb_server1, lb.load1)
 		//glb_server2 = append(glb_server2, lb.load2)
 		glb_loadbalancer1[graphCounter] = make([]int, 10)
+		glb_server1[graphCounter] = make([]int, 10)
 
 		for i:=0;i<10;i++{
 			glb_loadbalancer1[graphCounter][i]=lb.curLoad1[i]
+			if len(lb.load1)>=10{
+				glb_server1[graphCounter][i]=lb.load1[i]
+			}else{
+				glb_server1[graphCounter][i]=0
+			}
+			
 		}
 		graphCounter++
 		lock.Unlock()
