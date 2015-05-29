@@ -36,7 +36,6 @@ var glb_server1 [][]int
 var glb_server2 [][]int
 var graphCounter int
 
-
 type LoadBalancer struct {
 	id         int    /*Identification of load balancer*/
 	port       string /*Port it is listening on*/
@@ -120,10 +119,10 @@ func (lb *LoadBalancer) Init(id int, totServers int) {
 		}
 	}
 
-	glb_loadbalancer1 = make([][]int, 1000)
-	glb_loadbalancer2 = make([][]int, 1000)
-	glb_server1 = make([][]int, 1000)
-	glb_server2 = make([][]int, 1000)
+	glb_loadbalancer1 = make([][]int, 10000)
+	glb_loadbalancer2 = make([][]int, 10000)
+	glb_server1 = make([][]int, 10000)
+	glb_server2 = make([][]int, 10000)
 	graphCounter = 0
 
 	R[0] = 255
@@ -219,7 +218,7 @@ func(lb *LoadBalancer) ServeRequestsRR(){
 
 func (lb *LoadBalancer) drawGraph() {
 
-	time.Sleep(time.Second * 60)
+	time.Sleep(time.Second * 120)
 	lock.Lock()
 
 	p, err := plot.New()
@@ -231,16 +230,15 @@ func (lb *LoadBalancer) drawGraph() {
 	p.X.Label.Text = "Time [1 unit is 0.1 seconds]"
 	p.Y.Label.Text = "Load Balancer Requests"
 
-	numPeriods := 200
+	numPeriods := 1000
 	pts := make(plotter.XYs, numPeriods)
 
 	p.Add(plotter.NewGrid())
 
-    
-    fmt.Println("Load Balancer loads are ................\n",glb_loadbalancer1)
-	for i:=0;i<10;i++{
-		temp:=i+1
-		for j :=0;j<numPeriods;j++ {
+	fmt.Println("Load Balancer loads are ................\n", glb_loadbalancer1)
+	for i := 0; i < 10; i++ {
+		temp := i + 1
+		for j := 0; j < numPeriods; j++ {
 			pts[j].X = float64(1 * j)
 			pts[j].Y = float64(glb_loadbalancer1[j+50][i])
 		}
@@ -277,13 +275,13 @@ func (lb *LoadBalancer) drawGraph() {
 	p.X.Label.Text = "Time [1 unit is 0.1 seconds]"
 	p.Y.Label.Text = "Server Set Requests"
 
-	numPeriods = 500
+	numPeriods = 1000
 	pts = make(plotter.XYs, numPeriods)
 
 	p.Add(plotter.NewGrid())
 
 	fmt.Println("Serverloads are ................\n", glb_server1)
-	for i := 0; i <10; i++ {
+	for i := 0; i < 10; i++ {
 		temp := i + 1
 		for j := 0; j < numPeriods; j++ {
 			pts[j].X = float64(1 * j)
@@ -817,6 +815,10 @@ func (lb *LoadBalancer) whereToSend(val *[]int, n int) int {
 
 	mini := 0
 
+	if len(lb.servers1) == 0 && len(lb.servers2) == 0 {
+		return 0
+	}
+
 	for i := 0; i < n; i++ {
 		if (*val)[i] != -1 {
 			mini = min(mini, (*val)[i])
@@ -981,13 +983,12 @@ func min(a, b int) int {
 func counter_poller(lb *LoadBalancer) {
 
 	for {
-		if graphCounter > (1000 - 1) {
+		if graphCounter > (10000 - 1) {
 			break
 		}
 		time.Sleep(time.Millisecond * 100)
 		lock.Lock()
 
-		
 		//glb_loadbalancer1 = append(glb_loadbalancer1, lb.curLoad1)
 		//glb_loadbalancer2 = append(glb_loadbalancer2, lb.curLoad2)
 		//glb_server1 = append(glb_server1, lb.load1)
