@@ -36,6 +36,8 @@ var glb_server1 [][]int
 var glb_server2 [][]int
 var graphCounter int
 
+var request_recv int
+
 type LoadBalancer struct {
 	id         int    /*Identification of load balancer*/
 	port       string /*Port it is listening on*/
@@ -310,6 +312,7 @@ func (lb *LoadBalancer) drawGraph() {
 		panic(err)
 	}
 
+	fmt.Println("Request received and served by ", lb.id, request_recv, lb.curLoad1[lb.id])
 	lock.Unlock()
 
 }
@@ -747,6 +750,8 @@ func main() {
 
 	reverseProxy.Director = func(req *http.Request) {
 		lock.Lock()
+
+		request_recv++ //Received request from client
 		//fmt.Println("Received Request")
 		req.URL.Scheme = "http"
 
