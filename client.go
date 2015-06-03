@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"time"
 	"image/color"
+	"math/rand"
 )
 
 var (
@@ -25,6 +26,7 @@ var (
 	reply_recv_per_time_server2 []int
 	reply_recv_server1          []int
 	reply_recv_server2          []int
+	counter                      int
 )
 
 func temp(server string, count *int, n int) {
@@ -37,7 +39,8 @@ func temp(server string, count *int, n int) {
 	}
 
 	httpClient := &http.Client{Transport: transport}
-	req, _ := http.NewRequest("GET", "http://127.0.0.1:"+strconv.Itoa(port_number)+"/"+server+"/", nil)
+	counterS:=strconv.Itoa(counter)
+	req, _ := http.NewRequest("GET", "http://127.0.0.1:"+strconv.Itoa(port_number)+"/"+server+"/"+counterS, nil)
 	req.Header.Set("Connection", "close")
 	req.Close = true
 	resp, err := httpClient.Do(req)
@@ -95,6 +98,7 @@ func main() {
 		for i := 0; i < number; i++ {
 			temp("server1", &reply_recv_server1[i], i%lb_id)
 			req_sent_server1++
+			counter=rand.Intn(100)+1
 		}
 	case "3":
 		//to server2

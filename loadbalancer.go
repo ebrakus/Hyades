@@ -755,15 +755,18 @@ func main() {
 
 		var port int
 		suffix := ""
-		if strings.HasPrefix(req.URL.Path, "/server1/") {
 
+		if strings.HasPrefix(req.URL.Path, "/server1/") {
+			fmt.Println("URL is:",req.URL.Path)
+			fmt.Println("Last char is",req.URL.Path[9:])
+			incr,_:= strconv.Atoi(req.URL.Path[9:])
 			sendToLB := lb.whereToSend(&lb.curLoad1, 10)
 
 			if lb.id != sendToLB { /*To others*/
 				//fmt.Println("Calling Load Matix for curLoad1")
 				port = 8000 + sendToLB
 				suffix = "/server1/"
-				lb.curLoad1[sendToLB]++
+				lb.curLoad1[sendToLB]+= incr
 			} else {
 				//fmt.Println("Calling Load Matix for lb.load1")
 				sendToServer := lb.whereToSend(&lb.load1, lb.numServers)
@@ -771,8 +774,8 @@ func main() {
 				port, _ = strconv.Atoi(lb.servers1[sendToServer])
 				//fmt.Println("Server Set 1 is :", lb.servers1)
 				//fmt.Println("Port in ascii is :", lb.servers1[sendToServer])
-				lb.load1[sendToServer]++
-				lb.curLoad1[lb.id]++
+				lb.load1[sendToServer]+=incr
+				lb.curLoad1[lb.id]+=incr
 			}
 		}
 
