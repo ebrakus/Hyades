@@ -26,3 +26,31 @@ Figure 2: Basic system topology
 should go to. When we start the client we can specify the type of requests i.e., whether it has to go to only one of the server sets or to both of them. We can ac- cordingly send to only one Load Balancer to test or to all the Load Balancers in Round Robin or in some fixed ratio/randomly.
 
 > go run client.go <#Type of Requests> <#Number of requests> <#Clients Output Plot file>
+
+#Test Cases
+For each of the test cases the images are present in the img directory. Also, for each test case there is high resolution(denoted by prefix high_res*) and mdeium resolution graphs.
+TC 1 : Initial Load Balancing
+
+TC 2: Basic Load Balancing
+
+TC 3: Spiking Load on Server
+
+TC 4: Spiking Load on Load Balancer
+
+TC 5: Requests Received vs Request Served on Load Balancers
+
+TC 6: Behaviour on Load Balancer going down
+
+TC 7: Behaviour of 3 Load Balancers going down simulateously
+
+TC 8: Behaviour of Primary Load Balancer going down
+
+TC 9: Behaviour of Server going down and coming back up later
+
+TC 10: Behaviour on increasing the number of Load Balancers
+
+TC 11: Network Partition
+
+TC 12: Auto Scaling
+
+TC 13: Client requests with weights
