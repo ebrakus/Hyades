@@ -25,4 +25,4 @@ Using the URL for Server1 or Server2 the Load Bal- ancer can figure out to which
 Figure 2: Basic system topology
 should go to. When we start the client we can specify the type of requests i.e., whether it has to go to only one of the server sets or to both of them. We can ac- cordingly send to only one Load Balancer to test or to all the Load Balancers in Round Robin or in some fixed ratio/randomly.
 
-> go run client.go <Type of Requests> <#of requests> <Clients Output Plot file>
+> go run client.go <Type of Requests> <Number of requests> <Clients Output Plot file>
