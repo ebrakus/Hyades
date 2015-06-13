@@ -1,5 +1,6 @@
 # Hyades : A Distributed Load Balancer
-###Motivation
+
+##Motivation
 
 Having a pair of Load Balancers i.e. Primary/Secondary system is highly inefficient. Only the primary serves the en- tire load while the secondary acts a standby to provide High Availability and does not help in serving traffic leading to only 50% efficiency, which is highly inefficient. We propose Hyades - a distributed load-balancing cluster. Hyades is scalable, highly fault tolerant, performance driven system which acts like a single Load Balancer. With Hyades each of the Load Balancers are functional and serve traffic thus, increasing the efficiency and decreasing the cost as compared to multiple HA pairs.
 
@@ -27,7 +28,7 @@ should go to. When we start the client we can specify the type of requests i.e.,
 
 > go run client.go <#Type of Requests> <#Number of requests> <#Clients Output Plot file>
 
-#Test Cases
+##Test Cases
 For each of the test cases the images are present in the img directory. Also, for each test case there is high resolution(denoted by prefix high_res*) and mdeium resolution graphs.
 TC 1 : Initial Load Balancing
 
