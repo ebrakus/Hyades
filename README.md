@@ -30,6 +30,7 @@ should go to. When we start the client we can specify the type of requests i.e.,
 
 ##Test Cases
 For each of the test cases the images are present in the img directory. Also, for each test case there is high resolution(denoted by prefix high_res*) and mdeium resolution graphs.
+
 TC 1 : Initial Load Balancing
 
 TC 2: Basic Load Balancing
